@@ -71,11 +71,14 @@ class ObserverScheduler:
         self._daily_done_date = datetime.now().date().isoformat()
 
     def _is_in_daily_window(self, now: datetime) -> bool:
-        """Check whether ``now`` falls in [daily_time-30m, daily_time+30m]."""
+        """Check whether ``now`` falls in [daily_time-30m, daily_time+30m], crossing midnight safely."""
         hour, minute = self._parse_daily_time()
-        scheduled = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-        delta = abs((now - scheduled).total_seconds())
-        return delta <= 30 * 60
+        now_minutes = now.hour * 60 + now.minute
+        target_minutes = hour * 60 + minute
+        # Circular distance on a 24h clock to correctly handle cross-day windows.
+        minute_delta = abs(now_minutes - target_minutes)
+        minute_delta = min(minute_delta, 1440 - minute_delta)
+        return minute_delta <= 30
 
     def _parse_daily_time(self) -> tuple[int, int]:
         """Parse configured HH:MM daily time with safe fallback."""

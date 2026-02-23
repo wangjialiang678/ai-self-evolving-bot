@@ -54,6 +54,9 @@ class TestCompactionEngine:
 
         assert result["summary"] != ""
         assert result["compression_ratio"] < 1.0
+        assert "compressed_history" in result
+        assert "stats" in result
+        assert result["stats"]["compression_ratio"] == result["compression_ratio"]
 
     @pytest.mark.asyncio
     async def test_compact_short_history_no_op(self, tmp_path):
@@ -90,6 +93,21 @@ class TestCompactionEngine:
         assert len(result["flushed_to_memory"]) >= 1
         flush_file = memory_dir / "user/compaction_flush.jsonl"
         assert flush_file.exists()
+
+    @pytest.mark.asyncio
+    async def test_flush_parse_failure_returns_empty(self, tmp_path):
+        """flush 提取失败时返回空列表而不崩溃。"""
+        memory_dir = _setup_memory(tmp_path)
+        llm = MockLLMClient(
+            responses={
+                "gemini-flash": "not json",
+            }
+        )
+        engine = CompactionEngine(llm, str(memory_dir))
+
+        history = _make_long_history(20)
+        result = await engine.compact(history, keep_recent=5)
+        assert result["flushed_to_memory"] == []
 
 
 def _setup_memory(tmp_path: Path) -> Path:

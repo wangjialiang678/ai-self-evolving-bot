@@ -41,6 +41,9 @@ class TestObserverEngine:
         assert "task_id" in log
         assert "outcome" in log
         assert "note" in log
+        assert "patterns_noticed" in log
+        assert "suggestions" in log
+        assert "urgency" in log
 
     @pytest.mark.asyncio
     async def test_deep_analyze_reads_logs(self, tmp_path):
@@ -208,6 +211,20 @@ class TestObserverScheduler:
         report = await scheduler.check_and_run()
         # daily_time 一般不在窗口内，因此应为 None
         assert report is None or report["trigger"] == "daily"
+
+    def test_cross_day_window(self, tmp_path):
+        """跨日窗口（如 23:50 ±30 分钟）判断正确。"""
+        ws = _setup_workspace(tmp_path)
+        scheduler = ObserverScheduler(
+            observer=_make_engine(ws),
+            signal_store=_MockSignalStore(critical_count=0),
+            metrics=_MockMetrics(),
+            config={"daily_time": "23:50", "emergency_threshold": 3},
+        )
+
+        # 次日 00:10 应在窗口内
+        now = datetime.now().replace(hour=0, minute=10, second=0, microsecond=0)
+        assert scheduler._is_in_daily_window(now) is True
 
 
 def _setup_workspace(tmp_path: Path) -> Path:

@@ -70,15 +70,20 @@ class CompactionEngine:
         keep_count = keep_recent * 2
 
         if len(conversation_history) <= keep_count:
-            return {
-                "compacted_history": conversation_history,
-                "summary": "",
-                "flushed_to_memory": [],
+            stats = {
                 "original_tokens": original_tokens,
                 "compacted_tokens": original_tokens,
                 "compression_ratio": 1.0,
                 "key_decisions_preserved": 0,
                 "key_decisions_total": 0,
+            }
+            return {
+                "compacted_history": conversation_history,
+                "compressed_history": conversation_history,
+                "summary": "",
+                "flushed_to_memory": [],
+                "stats": stats,
+                **stats,
             }
 
         old_messages = conversation_history[:-keep_count] if keep_count > 0 else conversation_history
@@ -106,15 +111,21 @@ class CompactionEngine:
             },
         )
 
-        return {
-            "compacted_history": compacted_history,
-            "summary": summary,
-            "flushed_to_memory": flushed_items,
+        stats = {
             "original_tokens": original_tokens,
             "compacted_tokens": compacted_tokens,
             "compression_ratio": compression_ratio,
             "key_decisions_preserved": verification["key_decisions_preserved"],
             "key_decisions_total": verification["key_decisions_total"],
+        }
+
+        return {
+            "compacted_history": compacted_history,
+            "compressed_history": compacted_history,
+            "summary": summary,
+            "flushed_to_memory": flushed_items,
+            "stats": stats,
+            **stats,
         }
 
     async def _flush_to_memory(self, messages: list[dict]) -> list[dict]:

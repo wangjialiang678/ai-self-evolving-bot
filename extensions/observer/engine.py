@@ -132,6 +132,22 @@ class ObserverEngine:
             logger.error("Lightweight observe call failed: %s", exc)
 
         now = datetime.now().replace(microsecond=0)
+        patterns_noticed = list(signals)
+        suggestions: list[str] = []
+        if outcome == "FAILURE":
+            suggestions.append("Prioritize root-cause analysis and immediate mitigation.")
+        elif outcome == "PARTIAL":
+            suggestions.append("Tune response strategy based on user feedback.")
+        if "user_pattern" in patterns_noticed and "Track recurring user preference pattern." not in suggestions:
+            suggestions.append("Track recurring user preference pattern.")
+
+        if outcome == "FAILURE" or error_type == "ERROR":
+            urgency = "high"
+        elif outcome == "PARTIAL":
+            urgency = "medium"
+        else:
+            urgency = "low"
+
         light_log = {
             "timestamp": now.isoformat(),
             "task_id": task_id,
@@ -141,6 +157,9 @@ class ObserverEngine:
             "signals": signals,
             "error_type": error_type,
             "note": note or "正常完成",
+            "patterns_noticed": patterns_noticed,
+            "suggestions": suggestions,
+            "urgency": urgency,
         }
 
         path = self.light_logs_dir / f"{date.today().isoformat()}.jsonl"

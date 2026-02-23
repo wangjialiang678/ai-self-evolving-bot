@@ -188,6 +188,29 @@ class TestSignalDetector:
         assert any(s["signal_type"] == "task_failure" for s in signals)
         assert any(s["priority"] == "HIGH" for s in signals)
 
+    def test_detect_capability_gap(self, tmp_path):
+        """knowledge_gap 根因触发 capability_gap。"""
+        signals_dir = _setup_signals(tmp_path)
+        store = SignalStore(str(signals_dir))
+        detector = SignalDetector(store)
+
+        reflection = {
+            "task_id": "task_036",
+            "type": "ERROR",
+            "outcome": "FAILURE",
+            "lesson": "知识缺口",
+            "root_cause": "knowledge_gap",
+        }
+        context = {
+            "tokens_used": 1800,
+            "model": "opus",
+            "duration_ms": 9000,
+            "user_corrections": 0,
+        }
+
+        signals = detector.detect(reflection, context)
+        assert any(s["signal_type"] == "capability_gap" for s in signals)
+
     def test_detect_efficiency_opportunity(self, tmp_path):
         """高 token 消耗触发 efficiency_opportunity。"""
         signals_dir = _setup_signals(tmp_path)
@@ -358,6 +381,15 @@ class TestSignalDetector:
         perf_signals = [s for s in patterns if s["signal_type"] == "performance_degradation"]
         assert perf_signals
         assert perf_signals[0]["priority"] == "CRITICAL"
+
+    def test_detect_rule_unused(self, tmp_path):
+        """14天窗口无 rule_validated 时触发 rule_unused。"""
+        signals_dir = _setup_signals(tmp_path)
+        store = SignalStore(str(signals_dir))
+        detector = SignalDetector(store)
+
+        patterns = detector.detect_patterns(lookback_hours=14 * 24)
+        assert any(s["signal_type"] == "rule_unused" for s in patterns)
 
 
 def _setup_signals(tmp_path: Path) -> Path:
