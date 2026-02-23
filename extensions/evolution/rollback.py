@@ -36,7 +36,7 @@ class RollbackManager:
             backup_path.mkdir(parents=True, exist_ok=True)
         except Exception as exc:
             logger.error("Failed to create backup directory %s: %s", backup_path, exc)
-            return backup_id
+            raise RuntimeError(f"Failed to create backup directory: {backup_path}") from exc
 
         normalized_files: list[str] = []
         missing_files: list[str] = []
@@ -180,14 +180,13 @@ class RollbackManager:
                 logger.warning("Skip cleanup for invalid timestamp backup: %s", backup_dir.name)
                 continue
 
-            if metadata.get("status") == "active":
-                # 保守策略：active 备份视为仍在验证期，不自动删除。
-                continue
-
-            if timestamp < cutoff:
+            status = str(metadata.get("status", "active"))
+            # active 备份在验证期内保留；超出 retention 视为过期 stale active，可清理。
+            should_delete = timestamp < cutoff
+            if should_delete:
                 try:
                     shutil.rmtree(backup_dir)
-                    logger.info("Deleted expired backup: %s", backup_dir.name)
+                    logger.info("Deleted expired backup: %s (status=%s)", backup_dir.name, status)
                 except Exception as exc:
                     logger.error("Failed deleting backup %s: %s", backup_dir.name, exc)
 
@@ -226,7 +225,7 @@ class RollbackManager:
 
     @staticmethod
     def _make_backup_id(now: datetime, proposal_id: str) -> str:
-        return f"{now.strftime('%Y%m%d_%H%M%S')}_{proposal_id}"
+        return f"backup_{now.strftime('%Y%m%d_%H%M%S')}_{proposal_id}"
 
     def _normalize_to_workspace_relative(self, file_path: str) -> Path | None:
         raw = Path(file_path)

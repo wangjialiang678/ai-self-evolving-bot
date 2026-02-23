@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+try:  # pragma: no cover - platform dependent
+    import fcntl  # type: ignore
+except Exception:  # pragma: no cover - non-POSIX fallback
+    fcntl = None
 
 logger = logging.getLogger(__name__)
 
@@ -137,26 +141,56 @@ class MetricsTracker:
             raise ValueError(f"Unsupported metric: {metric}")
 
         start = date.today() - timedelta(days=days - 1)
-        trend: list[dict[str, Any]] = []
-
+        events = self._iter_events()
+        per_day: dict[str, dict[str, float | int]] = {}
         for offset in range(days):
             day = (start + timedelta(days=offset)).isoformat()
-            summary = self.get_daily_summary(day)
-            if metric == "success_rate":
-                value: float | int = summary["tasks"]["success_rate"]
-            elif metric == "total_tasks":
-                value = summary["tasks"]["total"]
-            elif metric == "total_tokens":
-                value = summary["tokens"]["total"]
-            else:
-                value = summary["user_corrections"]
+            per_day[day] = {
+                "success": 0,
+                "total_tasks": 0,
+                "total_tokens": 0,
+                "user_corrections": 0,
+            }
 
+        for event in events:
+            ts = self._parse_iso(event.get("timestamp"))
+            if ts is None:
+                continue
+            day = ts.date().isoformat()
+            if day not in per_day:
+                continue
+            if event.get("event_type") == "task":
+                per_day[day]["total_tasks"] += 1
+                per_day[day]["total_tokens"] += int(event.get("tokens", 0) or 0)
+                per_day[day]["user_corrections"] += int(event.get("user_corrections", 0) or 0)
+                if event.get("outcome") == "SUCCESS":
+                    per_day[day]["success"] += 1
+
+        trend: list[dict[str, Any]] = []
+        for offset in range(days):
+            day = (start + timedelta(days=offset)).isoformat()
+            row = per_day[day]
+            if metric == "success_rate":
+                total = int(row["total_tasks"])
+                value: float | int = (float(row["success"]) / total) if total else 0.0
+            elif metric == "total_tasks":
+                value = int(row["total_tasks"])
+            elif metric == "total_tokens":
+                value = int(row["total_tokens"])
+            else:
+                value = int(row["user_corrections"])
             trend.append({"date": day, "value": value})
 
         return trend
 
     def should_trigger_repair(self) -> bool:
-        """判断是否应触发 repair 模式。"""
+        """
+        判断是否应触发 repair 模式。
+
+        时间窗口定义：
+        - recent 3 天：今天及前 2 天（[today-2, today]）
+        - baseline 7 天：recent 之前的 7 天（[today-9, today-3]）
+        """
         if self._critical_signals_in_last_24h() >= 3:
             return True
 
@@ -204,7 +238,12 @@ class MetricsTracker:
     def _append_event(self, event: dict[str, Any]):
         try:
             with self.events_file.open("a", encoding="utf-8") as fp:
+                if fcntl is not None:
+                    fcntl.flock(fp.fileno(), fcntl.LOCK_EX)
                 fp.write(json.dumps(event, ensure_ascii=False) + "\n")
+                fp.flush()
+                if fcntl is not None:
+                    fcntl.flock(fp.fileno(), fcntl.LOCK_UN)
         except Exception as exc:
             logger.error("Failed to append event: %s", exc)
 

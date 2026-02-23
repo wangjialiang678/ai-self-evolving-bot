@@ -2,6 +2,8 @@ import json
 import time
 from datetime import datetime, timedelta
 
+import pytest
+
 from extensions.evolution.rollback import RollbackManager
 
 
@@ -17,6 +19,7 @@ class TestBackup:
         backup_id = rm.backup(["rules/experience/task_strategies.md"], "prop_001")
 
         assert backup_id is not None
+        assert backup_id.startswith("backup_")
         backup_dir = workspace / "backups" / backup_id
         assert backup_dir.exists()
         assert (backup_dir / "rules/experience/task_strategies.md").read_text(encoding="utf-8") == "# 原始内容\n策略1"
@@ -65,6 +68,18 @@ class TestBackup:
         meta = json.loads((workspace / "backups" / backup_id / "metadata.json").read_text(encoding="utf-8"))
         assert "rules/experience/nonexistent.md" in meta["files"]
         assert "rules/experience/nonexistent.md" in meta["missing_files"]
+
+    def test_backup_raises_when_backup_dir_uncreatable(self, tmp_path):
+        """备份目录无法创建时抛出异常。"""
+        workspace = _setup_workspace(tmp_path)
+        rm = RollbackManager(str(workspace))
+
+        blocked = workspace / "blocked"
+        blocked.write_text("not a dir", encoding="utf-8")
+        rm.backups_root = blocked
+
+        with pytest.raises(RuntimeError):
+            rm.backup(["rules/experience/task_strategies.md"], "prop_fail")
 
 
 class TestRollback:
@@ -164,8 +179,8 @@ class TestListAndCleanup:
         backups = rm.list_backups(limit=3)
         assert len(backups) == 3
 
-    def test_cleanup_deletes_old_non_active_backups(self, tmp_path):
-        """cleanup 仅清理过期且非 active 的备份。"""
+    def test_cleanup_deletes_old_backups_including_stale_active(self, tmp_path):
+        """cleanup 清理超过保留期的备份（含 stale active）。"""
         workspace = _setup_workspace(tmp_path)
         rm = RollbackManager(str(workspace))
 
@@ -189,7 +204,7 @@ class TestListAndCleanup:
         rm.cleanup(retention_days=30)
 
         assert not (workspace / "backups" / old_id).exists()
-        assert (workspace / "backups" / active_id).exists()
+        assert not (workspace / "backups" / active_id).exists()
 
 
 class TestAutoRollback:
