@@ -2,7 +2,7 @@
 observer:
   light_mode:
     enabled: true
-    model: "gemini-flash"
+    model: "qwen"
   deep_mode:
     schedule: "02:00"
     model: "opus"
@@ -33,7 +33,8 @@ rate_limit:
   min_interval_hours: 2
 
 communication:
-  quiet_hours: "22:00-08:00"
+  quiet_hours_start: "22:00"
+  quiet_hours_end: "08:00"
   daily_report: true
   daily_report_time: "08:30"
 
