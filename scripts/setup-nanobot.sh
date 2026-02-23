@@ -15,8 +15,10 @@ if [ ! -f "$ENV_FILE" ]; then
     exit 1
 fi
 
-# 读取 .env
+# 读取 .env 并 export 所有变量（使 Python 子进程可见）
+set -a
 source "$ENV_FILE"
+set +a
 
 # 检查关键 keys
 if [ -z "$PROXY_API_KEY" ] || [ "$PROXY_API_KEY" = "sk-xxx" ]; then

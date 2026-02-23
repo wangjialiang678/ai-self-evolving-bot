@@ -69,6 +69,17 @@ class SignalDetector:
                 )
             )
 
+        if output_type == "ERROR" and root_cause == "knowledge_gap":
+            detected.append(
+                self._make_signal(
+                    signal_type="capability_gap",
+                    priority="MEDIUM",
+                    source=f"reflection:{task_id}",
+                    description="Failure indicates capability/knowledge gap.",
+                    related_tasks=[task_id],
+                )
+            )
+
         rules_used = task_context.get("rules_used")
         if output_type == "NONE" and outcome == "SUCCESS" and rules_used:
             detected.append(
@@ -148,6 +159,25 @@ class SignalDetector:
                     priority="MEDIUM",
                     source="patterns:user_pattern",
                     description=f"Repeated user pattern detected ({len(user_pattern_events)} events).",
+                    related_tasks=[],
+                )
+            )
+
+        if (
+            lookback_hours >= 14 * 24
+            and not any(s.get("signal_type") == "rule_validated" for s in recent_active)
+            and not self._has_recent_pattern_signal(
+                recent_active,
+                signal_type="rule_unused",
+                source="patterns:rule_usage",
+            )
+        ):
+            created.append(
+                self._make_signal(
+                    signal_type="rule_unused",
+                    priority="LOW",
+                    source="patterns:rule_usage",
+                    description="No rule_validated signal detected in lookback window.",
                     related_tasks=[],
                 )
             )

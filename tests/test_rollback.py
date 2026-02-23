@@ -1,7 +1,9 @@
 import json
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
+import pytest
 from extensions.evolution.rollback import RollbackManager
 
 
@@ -65,6 +67,27 @@ class TestBackup:
         meta = json.loads((workspace / "backups" / backup_id / "metadata.json").read_text(encoding="utf-8"))
         assert "rules/experience/nonexistent.md" in meta["files"]
         assert "rules/experience/nonexistent.md" in meta["missing_files"]
+
+    def test_backup_id_has_prefix(self, tmp_path):
+        """backup_id 使用 backup_ 前缀。"""
+        workspace = _setup_workspace(tmp_path)
+        rm = RollbackManager(str(workspace))
+        (workspace / "rules/experience/task_strategies.md").write_text("x", encoding="utf-8")
+
+        backup_id = rm.backup(["rules/experience/task_strategies.md"], "prop_001")
+        assert backup_id.startswith("backup_")
+
+    def test_backup_create_dir_failure_raises(self, tmp_path, monkeypatch):
+        """备份目录创建失败时抛 RuntimeError。"""
+        workspace = _setup_workspace(tmp_path)
+        rm = RollbackManager(str(workspace))
+
+        def _boom(*args, **kwargs):
+            raise OSError("mkdir failed")
+
+        monkeypatch.setattr(Path, "mkdir", _boom)
+        with pytest.raises(RuntimeError):
+            rm.backup(["rules/experience/task_strategies.md"], "prop_001")
 
 
 class TestRollback:
@@ -189,7 +212,7 @@ class TestListAndCleanup:
         rm.cleanup(retention_days=30)
 
         assert not (workspace / "backups" / old_id).exists()
-        assert (workspace / "backups" / active_id).exists()
+        assert not (workspace / "backups" / active_id).exists()
 
 
 class TestAutoRollback:

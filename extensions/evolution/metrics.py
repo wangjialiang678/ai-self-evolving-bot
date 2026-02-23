@@ -7,10 +7,16 @@ import logging
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+import os
 
 import yaml
 
 logger = logging.getLogger(__name__)
+
+try:  # pragma: no cover - platform dependent
+    import fcntl  # type: ignore[attr-defined]
+except Exception:  # pragma: no cover
+    fcntl = None
 
 
 class MetricsTracker:
@@ -136,12 +142,15 @@ class MetricsTracker:
         if metric not in supported:
             raise ValueError(f"Unsupported metric: {metric}")
 
-        start = date.today() - timedelta(days=days - 1)
-        trend: list[dict[str, Any]] = []
+        start_day = date.today() - timedelta(days=days - 1)
+        end_day = date.today()
+        daily = self._aggregate_daily_summaries(start_day, end_day)
 
+        trend: list[dict[str, Any]] = []
         for offset in range(days):
-            day = (start + timedelta(days=offset)).isoformat()
-            summary = self.get_daily_summary(day)
+            day = start_day + timedelta(days=offset)
+            day_key = day.isoformat()
+            summary = daily.get(day_key, self._empty_summary(day_key))
             if metric == "success_rate":
                 value: float | int = summary["tasks"]["success_rate"]
             elif metric == "total_tasks":
@@ -150,13 +159,18 @@ class MetricsTracker:
                 value = summary["tokens"]["total"]
             else:
                 value = summary["user_corrections"]
-
-            trend.append({"date": day, "value": value})
+            trend.append({"date": day_key, "value": value})
 
         return trend
 
     def should_trigger_repair(self) -> bool:
-        """判断是否应触发 repair 模式。"""
+        """
+        判断是否应触发 repair 模式。
+
+        时间窗口定义：
+        - baseline: [today-9d, today-3d]（共 7 天，含边界）
+        - recent:   [today-2d, today]（共 3 天，含边界）
+        """
         if self._critical_signals_in_last_24h() >= 3:
             return True
 
@@ -204,7 +218,13 @@ class MetricsTracker:
     def _append_event(self, event: dict[str, Any]):
         try:
             with self.events_file.open("a", encoding="utf-8") as fp:
+                if fcntl is not None:
+                    fcntl.flock(fp.fileno(), fcntl.LOCK_EX)
                 fp.write(json.dumps(event, ensure_ascii=False) + "\n")
+                fp.flush()
+                os.fsync(fp.fileno())
+                if fcntl is not None:
+                    fcntl.flock(fp.fileno(), fcntl.LOCK_UN)
         except Exception as exc:
             logger.error("Failed to append event: %s", exc)
 
@@ -231,6 +251,42 @@ class MetricsTracker:
             for event in self._iter_events()
             if str(event.get("timestamp", "")).startswith(target_date)
         ]
+
+    def _aggregate_daily_summaries(self, start: date, end: date) -> dict[str, dict[str, Any]]:
+        """
+        Aggregate daily summaries in one pass over events.
+
+        This avoids repeatedly rescanning events.jsonl for each day.
+        """
+        summaries: dict[str, dict[str, Any]] = {}
+        for event in self._iter_events_between(start, end):
+            timestamp = self._parse_iso(event.get("timestamp"))
+            if timestamp is None:
+                continue
+            day_key = timestamp.date().isoformat()
+            if day_key not in summaries:
+                summaries[day_key] = self._empty_summary(day_key)
+
+            summary = summaries[day_key]
+            event_type = event.get("event_type")
+            if event_type == "task":
+                self._apply_task_to_summary(summary, event)
+            elif event_type == "signal":
+                summary["signals_detected"] += 1
+                if event.get("signal_type") == "observer_deep_analysis":
+                    summary["observer_deep_analyses"] += 1
+            elif event_type == "proposal":
+                summary["architect_proposals"] += 1
+                status = str(event.get("status", "")).lower()
+                if status == "executed":
+                    summary["modifications_executed"] += 1
+                elif status == "rolled_back":
+                    summary["modifications_rolled_back"] += 1
+
+        for summary in summaries.values():
+            total = summary["tasks"]["total"]
+            summary["tasks"]["success_rate"] = (summary["tasks"]["success"] / total) if total > 0 else 0.0
+        return summaries
 
     def _iter_events_between(self, start: date, end: date) -> list[dict[str, Any]]:
         events_in_range: list[dict[str, Any]] = []
