@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Project
+workspace/backups/
+workspace/logs/
+workspace/metrics/events.jsonl
+
+# Cache
+.pytest_cache/
+
+# Claude Code runtime logs (contains tool call traces)
+.claude/memory-bank/feedback/
+.claude/memory-bank/sessions/
+docs/.claude/
+
+# External research (contains sensitive data)
+manus/
+
+# Secrets
+.env
+*.key

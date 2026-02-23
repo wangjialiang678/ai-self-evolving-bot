@@ -1,0 +1,46 @@
+# 进化系统配置
+observer:
+  light_mode:
+    enabled: true
+    model: "gemini-flash"
+  deep_mode:
+    schedule: "02:00"
+    model: "opus"
+    emergency_threshold: 3  # 24h 内 critical 信号数
+
+architect:
+  schedule: "03:00"
+  model: "opus"
+  max_daily_proposals: 3
+
+approval:
+  levels:
+    0: {action: "auto_execute", notify: false}
+    1: {action: "execute_then_notify", notify: true}
+    2: {action: "propose_then_wait", notify: true}
+    3: {action: "discuss", notify: true}
+
+rollback:
+  auto_threshold: 0.20
+  backup_retention_days: 30
+
+blast_radius:
+  level_0_max_files: 1
+  level_1_max_files: 3
+
+rate_limit:
+  max_daily_modifications: 5
+  min_interval_hours: 2
+
+communication:
+  quiet_hours: "22:00-08:00"
+  daily_report: true
+  daily_report_time: "08:30"
+
+evolution_strategy:
+  initial: "cautious"
+  transitions:
+    cautious_to_balanced: {min_days: 7, min_success_rate: 0.70}
+    balanced_to_growth: {stale_days: 14, min_success_rate: 0.80}
+    any_to_repair: {success_drop: 0.20, critical_threshold: 3}
+    repair_to_balanced: {recovery_days: 2}
