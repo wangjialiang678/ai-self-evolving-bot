@@ -270,6 +270,95 @@ class TestSignalDetector:
         patterns = detector.detect_patterns(lookback_hours=168)
         assert any(s["signal_type"] == "repeated_error" for s in patterns)
 
+    def test_detect_patterns_no_duplicate_repeated_error(self, tmp_path):
+        """重复调用 detect_patterns 不重复写入同源 repeated_error。"""
+        signals_dir = _setup_signals(tmp_path)
+        store = SignalStore(str(signals_dir))
+        detector = SignalDetector(store)
+
+        now = datetime.now().replace(microsecond=0).isoformat()
+        store.add(
+            {
+                "signal_type": "task_failure",
+                "priority": "HIGH",
+                "source": "reflection:task_101",
+                "description": "错误",
+                "related_tasks": ["task_101"],
+                "timestamp": now,
+            }
+        )
+        store.add(
+            {
+                "signal_type": "task_failure",
+                "priority": "HIGH",
+                "source": "reflection:task_102",
+                "description": "错误",
+                "related_tasks": ["task_102"],
+                "timestamp": now,
+            }
+        )
+
+        first = detector.detect_patterns(lookback_hours=168)
+        second = detector.detect_patterns(lookback_hours=168)
+
+        assert any(s["signal_type"] == "repeated_error" for s in first)
+        assert not any(s["signal_type"] == "repeated_error" for s in second)
+
+    def test_detect_performance_degradation(self, tmp_path):
+        """3天成功率显著下降时触发 performance_degradation。"""
+        signals_dir = _setup_signals(tmp_path)
+        store = SignalStore(str(signals_dir))
+        detector = SignalDetector(store)
+
+        metrics_dir = tmp_path / "metrics"
+        metrics_dir.mkdir()
+        events_path = metrics_dir / "events.jsonl"
+        rows = []
+        now = datetime.now()
+
+        # baseline window (10~3 days ago): high success
+        for d in range(4, 10):
+            ts = (now - timedelta(days=d)).replace(microsecond=0).isoformat()
+            rows.append(
+                {
+                    "event_type": "task",
+                    "timestamp": ts,
+                    "task_id": f"base_success_{d}",
+                    "outcome": "SUCCESS",
+                    "tokens": 1000,
+                    "model": "opus",
+                    "duration_ms": 1000,
+                    "user_corrections": 0,
+                    "error_type": None,
+                }
+            )
+
+        # recent 3 days: mostly failures
+        for d in range(0, 3):
+            ts = (now - timedelta(days=d)).replace(microsecond=0).isoformat()
+            rows.append(
+                {
+                    "event_type": "task",
+                    "timestamp": ts,
+                    "task_id": f"recent_fail_{d}",
+                    "outcome": "FAILURE",
+                    "tokens": 1000,
+                    "model": "opus",
+                    "duration_ms": 1000,
+                    "user_corrections": 0,
+                    "error_type": "ERROR",
+                }
+            )
+
+        with events_path.open("w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+        patterns = detector.detect_patterns(lookback_hours=168)
+        perf_signals = [s for s in patterns if s["signal_type"] == "performance_degradation"]
+        assert perf_signals
+        assert perf_signals[0]["priority"] == "CRITICAL"
+
 
 def _setup_signals(tmp_path: Path) -> Path:
     signals_dir = tmp_path / "signals"
