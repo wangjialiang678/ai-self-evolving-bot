@@ -123,11 +123,11 @@ workspace/rules/experience/
 - 经验级默认值：参考 5.2.2 + 8.2.1，写出通用的 Best Practice
 - `interaction_patterns.md` 必须包含"执行前主动澄清"规则
 - `error_patterns.md` 必须包含设计文档 5.5.2 中的四种 AI 常见错误模式
-- 每个文件需有清晰的结构（YAML front matter + Markdown 正文）
+- 每个文件需有清晰的结构（Markdown 格式，不使用 YAML front matter）
 
 **验收标准**：
 - [ ] 5 个宪法级规则文件内容完整且互不矛盾
-- [ ] 5 个经验级规则文件有合理的默认策略
+- [ ] 7 个经验级规则文件就位（3 个从 defaults 复制、2 个骨架模板、2 个空模板）
 - [ ] identity.md 定义了系统人格和对话风格
 - [ ] safety_boundaries.md 定义了不可修改底线
 - [ ] approval_levels.md 定义了 Level 0-3 的明确边界和示例
@@ -229,7 +229,7 @@ class MetricsTracker:
         status: "proposed" | "approved" | "rejected" | "executed" | "rolled_back" | "validated"
         """
 
-    def get_daily_summary(self, date: str | None = None) -> dict:
+    def get_daily_summary(self, target_date: str | None = None) -> dict:
         """
         获取某天的汇总指标。默认今天。
         返回格式见设计文档 12.2 核心指标追踪。
@@ -247,8 +247,8 @@ class MetricsTracker:
         条件：3 天成功率下降 >20% 或 24h 内 critical ≥3
         """
 
-    def flush_daily(self):
-        """将今日数据写入 daily_metrics.yaml 文件。"""
+    def flush_daily(self, target_date: str | None = None):
+        """将指定日期的数据写入 daily/{date}.yaml 文件。默认今天。"""
 ```
 
 **数据存储格式**：
@@ -330,8 +330,9 @@ class SignalStore:
     def mark_handled(self, signal_ids: list[str], handler: str):
         """标记信号为已处理，移到 archive.jsonl。"""
 
-    def count_recent(self, signal_type: str, hours: int = 24) -> int:
-        """统计最近 N 小时内某类型信号数量。"""
+    def count_recent(self, signal_type: str | None = None,
+                     priority: str | None = None, hours: int = 24) -> int:
+        """统计最近 N 小时内某类型/优先级信号数量。"""
 ```
 
 **信号类型定义**（来自设计文档）：
@@ -455,7 +456,7 @@ class CompactionEngine:
         memory_dir: workspace/memory/ 路径
         """
 
-    async def should_compact(self, current_tokens: int, budget: int) -> bool:
+    def should_compact(self, current_tokens: int, budget: int) -> bool:
         """当 current_tokens / budget >= 0.85 时返回 True。"""
 
     async def compact(self, conversation_history: list[dict],
@@ -552,7 +553,7 @@ class ObserverEngine:
              {"type": "error_pattern"|"efficiency"|"skill_gap"|"preference",
               "description": "...",
               "confidence": "HIGH"|"MEDIUM"|"LOW",
-              "related_signals": [...],
+              "evidence": [...],
               "recommendation": "..."}
            ],
            "overall_health": "good"|"degraded"|"critical"}
@@ -689,7 +690,7 @@ workspace/
 - **ID 格式**：`task_042`, `signal_001`, `proposal_023`, `backup_20260225_101530_023`
 - **JSONL 文件**：每行一个 JSON 对象，追加写入
 - **YAML 文件**：标准 YAML，`PyYAML` 兼容
-- **Markdown 文件**：人类可读，可包含 YAML front matter
+- **Markdown 文件**：人类可读，不使用 YAML front matter（简化解析）
 
 ### 6.3 LLM Client 接口
 

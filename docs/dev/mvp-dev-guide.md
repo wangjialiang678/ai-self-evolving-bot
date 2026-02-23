@@ -443,7 +443,7 @@ def sample_task_trace():
 **不需要代码测试**，但需要人工审查 checklist：
 
 ```
-□ 每个规则文件有 YAML front matter（name, version, level, last_modified）
+□ 每个规则文件使用 Markdown 格式，不使用 YAML front matter
 □ identity.md 定义了系统名称、人格、对话风格
 □ safety_boundaries.md 列出了所有不可修改底线
 □ approval_levels.md 的 4 个级别有明确边界和示例
@@ -541,7 +541,7 @@ class TestMetricsTracker:
         mt = MetricsTracker(str(workspace / "metrics"))
         mt.record_task("task_001", "SUCCESS", 3200, "opus", 15000)
         mt.record_task("task_002", "FAILURE", 1500, "opus", 8000)
-        mt.record_task("task_003", "SUCCESS", 2000, "gemini", 5000)
+        mt.record_task("task_003", "SUCCESS", 2000, "gemini-flash", 5000)
 
         summary = mt.get_daily_summary()
         assert summary["tasks"]["total"] == 3

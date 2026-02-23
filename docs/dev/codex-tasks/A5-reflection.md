@@ -85,7 +85,7 @@ class ReflectionEngine:
         将反思结果写入对应文件。
 
         规则：
-        - ERROR → 追加到 workspace/memory/user/error_log.jsonl
+        - ERROR → 追加到 workspace/rules/experience/error_patterns.md
         - PREFERENCE → 追加到 workspace/memory/user/preferences.md
         - 所有类型 → 追加到 workspace/memory/user/reflections.jsonl
         """

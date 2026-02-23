@@ -29,7 +29,7 @@ class CompactionEngine:
             memory_dir: workspace/memory/ 路径
         """
 
-    async def should_compact(self, current_tokens: int, budget: int) -> bool:
+    def should_compact(self, current_tokens: int, budget: int) -> bool:
         """当 current_tokens / budget >= 0.85 时返回 True。"""
 
     async def compact(self, conversation_history: list[dict],

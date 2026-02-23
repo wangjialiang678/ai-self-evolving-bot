@@ -22,7 +22,7 @@
 
 ## 你要做什么
 
-创建 12 个 Markdown 文件，分三组：
+创建 15 个 Markdown 文件，分三组：
 
 ### 第一组：宪法级规则（5 个文件）
 
@@ -152,7 +152,7 @@
 - 典型表现
 - 应对策略（系统应如何避免或检测此错误）
 
-### 第三组：经验级规则初始文件（4 个文件）
+### 第三组：经验级规则初始文件（7 个文件）
 
 存放路径：`workspace/rules/experience/`
 
@@ -162,12 +162,13 @@
 
 #### 11. `error_patterns.md` — 初始为 `config/defaults/error_patterns.md` 的副本
 
-#### 12. 以下文件创建为空模板（只有标题和说明）：
+#### 12. `reflection_templates.md` — 反思维度和格式（可执行模板骨架，参考下方模板）
 
-- `reflection_templates.md` — 反思维度和格式（参考下方模板）
-- `memory_strategies.md` — 记忆存取策略（参考下方模板）
-- `user_preferences.md` — 用户偏好（空，等待 Bootstrap 填充）
-- `tool_usage_tips.md` — 工具使用经验（空，等待积累）
+#### 13. `memory_strategies.md` — 记忆存取策略（可执行模板骨架，参考下方模板）
+
+#### 14. `user_preferences.md` — 用户偏好（空模板，等待 Bootstrap 填充）
+
+#### 15. `tool_usage_tips.md` — 工具使用经验（空模板，等待积累）
 
 反思模板参考：
 ```markdown
