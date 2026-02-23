@@ -195,6 +195,10 @@ class AgentLoop:
             logger.error("LLM call failed: %s", e)
             response = f"抱歉，处理消息时出错：{e}"
 
+        if not response:
+            logger.warning("LLM returned empty response for message: %.80s", user_message)
+            response = "抱歉，暂时无法生成回复，请稍后再试。"
+
         duration_ms = int((time.monotonic() - start_time) * 1000)
 
         # [5] 更新对话历史

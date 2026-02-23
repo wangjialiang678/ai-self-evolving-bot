@@ -140,18 +140,21 @@ class TestProcessStageBackground:
 
 class TestProcessStageProjects:
     async def test_projects_creates_context_md(self, flow, ws):
+        await flow.process_stage("background", BACKGROUND_INPUT)
         await flow.process_stage("projects", PROJECTS_INPUT)
         ctx = ws / "memory" / "projects" / "my-agent" / "context.md"
         assert ctx.exists()
         assert ctx.stat().st_size > 0
 
     async def test_projects_returns_correct_next_stage(self, flow):
+        await flow.process_stage("background", BACKGROUND_INPUT)
         result = await flow.process_stage("projects", PROJECTS_INPUT)
         assert result["stage"] == "projects"
         assert result["next_stage"] == "preferences"
         assert result["completed"] is False
 
     async def test_projects_updates_state(self, flow, ws):
+        await flow.process_stage("background", BACKGROUND_INPUT)
         await flow.process_stage("projects", PROJECTS_INPUT)
         state = json.loads((ws / ".bootstrap_state.json").read_text())
         assert "projects" in state["completed_stages"]
@@ -165,18 +168,24 @@ class TestProcessStageProjects:
 
 class TestProcessStagePreferences:
     async def test_preferences_creates_preferences_md(self, flow, ws):
+        await flow.process_stage("background", BACKGROUND_INPUT)
+        await flow.process_stage("projects", PROJECTS_INPUT)
         await flow.process_stage("preferences", PREFERENCES_INPUT)
         pref = ws / "memory" / "user" / "preferences.md"
         assert pref.exists()
         assert pref.stat().st_size > 0
 
     async def test_preferences_completed_true(self, flow):
+        await flow.process_stage("background", BACKGROUND_INPUT)
+        await flow.process_stage("projects", PROJECTS_INPUT)
         result = await flow.process_stage("preferences", PREFERENCES_INPUT)
         assert result["stage"] == "preferences"
         assert result["next_stage"] is None
         assert result["completed"] is True
 
     async def test_preferences_updates_state_to_completed(self, flow, ws):
+        await flow.process_stage("background", BACKGROUND_INPUT)
+        await flow.process_stage("projects", PROJECTS_INPUT)
         await flow.process_stage("preferences", PREFERENCES_INPUT)
         state = json.loads((ws / ".bootstrap_state.json").read_text())
         assert state["current_stage"] == "completed"

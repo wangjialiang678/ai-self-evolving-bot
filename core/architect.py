@@ -319,9 +319,11 @@ class ArchitectEngine:
         for idx, item in enumerate(parsed, start=1):
             if not isinstance(item, dict):
                 continue
-            # 保证 proposal_id 存在
+            # 保证 proposal_id 存在（含微秒确保同日多次调用不碰撞）
             if not item.get("proposal_id"):
-                item["proposal_id"] = f"prop_{datetime.now().strftime('%Y%m%d')}_{idx:03d}"
+                item["proposal_id"] = (
+                    f"prop_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{idx:03d}"
+                )
             # 保证 trigger_source
             if not item.get("trigger_source"):
                 item["trigger_source"] = f"observer_report:{report_date}"
@@ -395,11 +397,20 @@ class ArchitectEngine:
                 )
             except Exception as exc:
                 logger.error("Content generation failed: %s", exc)
-                return
+                raise RuntimeError(f"Content generation failed: {exc}") from exc
+
+            if not new_content:
+                raise RuntimeError("LLM returned empty content, refusing to overwrite file")
 
         # 写入第一个目标文件（experience 级别只改一个文件）
         target_rel = files_affected[0]
-        target_path = self.workspace_path / target_rel
+        target_path = (self.workspace_path / target_rel).resolve()
+        workspace_resolved = self.workspace_path.resolve()
+        # 路径安全校验：禁止写 workspace 以外的文件
+        if not str(target_path).startswith(str(workspace_resolved)):
+            raise ValueError(
+                f"Path traversal rejected: {target_rel!r} resolves outside workspace"
+            )
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(new_content, encoding="utf-8")
         logger.info("Wrote new content to %s", target_path)

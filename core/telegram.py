@@ -403,7 +403,11 @@ class TelegramChannel:
         results = []
         remaining = []
 
-        for item in self._message_queue:
+        # 快照后立即清空，避免 send_message 失败时重入导致无限增长
+        snapshot = list(self._message_queue)
+        self._message_queue = []
+
+        for item in snapshot:
             result = await self.send_message(
                 text=item["text"],
                 parse_mode=item.get("parse_mode", "Markdown"),
@@ -416,7 +420,8 @@ class TelegramChannel:
             else:
                 remaining.append(item)
 
-        self._message_queue = remaining
+        # 把仍未发出的消息放回队列（append 不会触发迭代）
+        self._message_queue.extend(remaining)
         if results:
             logger.info(f"Flushed {len(results)} queued messages")
         return results

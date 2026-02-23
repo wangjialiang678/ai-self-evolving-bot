@@ -55,7 +55,15 @@ class BootstrapFlow:
     def _load_state(self) -> dict:
         p = self._state_path()
         if p.exists():
-            return json.loads(p.read_text(encoding="utf-8"))
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning("Bootstrap state file corrupted, resetting: %s", exc)
+                # 损坏时删除并重置，避免服务中断
+                try:
+                    p.unlink()
+                except OSError:
+                    pass
         return {
             "current_stage": "not_started",
             "completed_stages": [],
@@ -105,6 +113,21 @@ class BootstrapFlow:
             }
         """
         state = self._load_state()
+
+        # 阶段顺序校验：禁止跳级调用
+        current = state["current_stage"]
+        if current == "not_started":
+            expected = STAGES[0]
+        elif current in STAGES:
+            idx = STAGES.index(current)
+            expected = STAGES[idx] if current not in state.get("completed_stages", []) else (STAGES[idx + 1] if idx + 1 < len(STAGES) else None)
+        else:
+            expected = None  # completed / unknown
+
+        if stage in STAGES and expected is not None and stage != expected:
+            raise ValueError(
+                f"Stage order violation: expected '{expected}', got '{stage}'"
+            )
 
         if state["current_stage"] == "not_started":
             state["current_stage"] = stage
