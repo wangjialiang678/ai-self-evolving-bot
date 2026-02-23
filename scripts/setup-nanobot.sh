@@ -18,14 +18,15 @@ fi
 # 读取 .env
 source "$ENV_FILE"
 
-if [ -z "$ANTHROPIC_API_KEY" ] || [ "$ANTHROPIC_API_KEY" = "sk-ant-xxx" ]; then
-    echo "⚠️  ANTHROPIC_API_KEY 未设置或仍为占位值"
+# 检查关键 keys
+if [ -z "$PROXY_API_KEY" ] || [ "$PROXY_API_KEY" = "sk-xxx" ]; then
+    echo "⚠️  PROXY_API_KEY 未设置或仍为占位值"
 fi
-if [ -z "$GOOGLE_API_KEY" ] || [ "$GOOGLE_API_KEY" = "xxx" ]; then
-    echo "⚠️  GOOGLE_API_KEY 未设置或仍为占位值"
+if [ -z "$NVIDIA_API_KEY" ] || [ "$NVIDIA_API_KEY" = "nvapi-xxx" ]; then
+    echo "⚠️  NVIDIA_API_KEY 未设置或仍为占位值"
 fi
 if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ "$TELEGRAM_BOT_TOKEN" = "xxx:xxx" ]; then
-    echo "⚠️  TELEGRAM_BOT_TOKEN 未设置或仍为占位值"
+    echo "⚠️  TELEGRAM_BOT_TOKEN 未设置或仍为占位值（TG 暂禁用）"
 fi
 
 # 创建配置目录
@@ -33,7 +34,7 @@ mkdir -p "$HOME/.nanobot"
 
 # 生成配置（使用 python 处理 JSON）
 python3 -c "
-import json
+import json, os
 
 config = {
     'agents': {
@@ -47,13 +48,19 @@ config = {
         }
     },
     'providers': {
-        'anthropic': {'apiKey': '${ANTHROPIC_API_KEY:-YOUR_ANTHROPIC_API_KEY}'},
-        'gemini': {'apiKey': '${GOOGLE_API_KEY:-YOUR_GOOGLE_API_KEY}'}
+        'anthropic': {
+            'apiKey': os.environ.get('PROXY_API_KEY', 'YOUR_PROXY_API_KEY'),
+            'baseUrl': os.environ.get('PROXY_BASE_URL', 'https://vtok.ai')
+        },
+        'openai': {
+            'apiKey': os.environ.get('NVIDIA_API_KEY', 'YOUR_NVIDIA_API_KEY'),
+            'baseUrl': 'https://integrate.api.nvidia.com/v1'
+        }
     },
     'channels': {
         'telegram': {
-            'enabled': True,
-            'token': '${TELEGRAM_BOT_TOKEN:-YOUR_TELEGRAM_BOT_TOKEN}',
+            'enabled': False,
+            'token': os.environ.get('TELEGRAM_BOT_TOKEN', 'YOUR_TELEGRAM_BOT_TOKEN'),
             'allowFrom': [],
             'proxy': None,
             'replyToMessage': False
@@ -77,6 +84,9 @@ with open('$CONFIG_FILE', 'w') as f:
 
 echo "✅ NanoBot 配置已更新: $CONFIG_FILE"
 echo "   workspace: $PROJECT_DIR/workspace"
+echo "   Claude: vtok.ai 代理"
+echo "   Qwen: NVIDIA 平台"
+echo "   Telegram: $([ "$TELEGRAM_BOT_TOKEN" != "xxx:xxx" ] && echo '已配置' || echo '待配置')"
 echo ""
 echo "验证: nanobot status"
 echo "测试: nanobot agent -m '你好'"
