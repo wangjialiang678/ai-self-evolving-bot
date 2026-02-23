@@ -90,6 +90,14 @@ class ObserverEngine:
         Args:
             task_trace: task execution trace.
             reflection_output: optional reflection output.
+
+        Returns:
+            Lightweight observation payload:
+            {
+                "patterns_noticed": list[str],
+                "suggestions": list[str],
+                "urgency": "none" | "low" | "high",
+            }
         """
         task_id = str(task_trace.get("task_id", "unknown_task"))
         tokens = int(task_trace.get("tokens_used", 0) or 0)
@@ -143,10 +151,10 @@ class ObserverEngine:
 
         if outcome == "FAILURE" or error_type == "ERROR":
             urgency = "high"
-        elif outcome == "PARTIAL":
-            urgency = "medium"
-        else:
+        elif outcome == "PARTIAL" or patterns_noticed:
             urgency = "low"
+        else:
+            urgency = "none"
 
         light_log = {
             "timestamp": now.isoformat(),
@@ -164,7 +172,11 @@ class ObserverEngine:
 
         path = self.light_logs_dir / f"{date.today().isoformat()}.jsonl"
         self._append_jsonl(path, light_log)
-        return light_log
+        return {
+            "patterns_noticed": patterns_noticed,
+            "suggestions": suggestions,
+            "urgency": urgency,
+        }
 
     async def deep_analyze(self, trigger: str = "daily") -> dict:
         """

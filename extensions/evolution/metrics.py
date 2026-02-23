@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
-import os
 
 import yaml
 
@@ -164,8 +164,7 @@ class MetricsTracker:
         return trend
 
     def should_trigger_repair(self) -> bool:
-        """
-        判断是否应触发 repair 模式。
+        """判断是否应触发 repair 模式。
 
         时间窗口定义：
         - baseline: [today-9d, today-3d]（共 7 天，含边界）
@@ -253,11 +252,7 @@ class MetricsTracker:
         ]
 
     def _aggregate_daily_summaries(self, start: date, end: date) -> dict[str, dict[str, Any]]:
-        """
-        Aggregate daily summaries in one pass over events.
-
-        This avoids repeatedly rescanning events.jsonl for each day.
-        """
+        """Aggregate daily summaries in one pass over events."""
         summaries: dict[str, dict[str, Any]] = {}
         for event in self._iter_events_between(start, end):
             timestamp = self._parse_iso(event.get("timestamp"))

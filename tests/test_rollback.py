@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+
 from extensions.evolution.rollback import RollbackManager
 
 
@@ -19,6 +20,7 @@ class TestBackup:
         backup_id = rm.backup(["rules/experience/task_strategies.md"], "prop_001")
 
         assert backup_id is not None
+        assert backup_id.startswith("backup_")
         backup_dir = workspace / "backups" / backup_id
         assert backup_dir.exists()
         assert (backup_dir / "rules/experience/task_strategies.md").read_text(encoding="utf-8") == "# 原始内容\n策略1"
@@ -77,17 +79,17 @@ class TestBackup:
         backup_id = rm.backup(["rules/experience/task_strategies.md"], "prop_001")
         assert backup_id.startswith("backup_")
 
-    def test_backup_create_dir_failure_raises(self, tmp_path, monkeypatch):
-        """备份目录创建失败时抛 RuntimeError。"""
+    def test_backup_raises_when_backup_dir_uncreatable(self, tmp_path):
+        """备份目录无法创建时抛出异常。"""
         workspace = _setup_workspace(tmp_path)
         rm = RollbackManager(str(workspace))
 
-        def _boom(*args, **kwargs):
-            raise OSError("mkdir failed")
+        blocked = workspace / "blocked"
+        blocked.write_text("not a dir", encoding="utf-8")
+        rm.backups_root = blocked
 
-        monkeypatch.setattr(Path, "mkdir", _boom)
         with pytest.raises(RuntimeError):
-            rm.backup(["rules/experience/task_strategies.md"], "prop_001")
+            rm.backup(["rules/experience/task_strategies.md"], "prop_fail")
 
 
 class TestRollback:
@@ -187,8 +189,8 @@ class TestListAndCleanup:
         backups = rm.list_backups(limit=3)
         assert len(backups) == 3
 
-    def test_cleanup_deletes_old_non_active_backups(self, tmp_path):
-        """cleanup 仅清理过期且非 active 的备份。"""
+    def test_cleanup_deletes_old_backups_including_stale_active(self, tmp_path):
+        """cleanup 清理超过保留期的备份（含 stale active）。"""
         workspace = _setup_workspace(tmp_path)
         rm = RollbackManager(str(workspace))
 

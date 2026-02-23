@@ -29,21 +29,19 @@ class TestObserverEngine:
         lines = log_file.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 1
         assert json.loads(lines[0])["task_id"] == "task_042"
-        assert log["task_id"] == "task_042"
+        assert set(log) == {"patterns_noticed", "suggestions", "urgency"}
 
     @pytest.mark.asyncio
-    async def test_lightweight_returns_log(self, tmp_path):
+    async def test_lightweight_returns_contract(self, tmp_path):
         """轻量观察返回正确格式。"""
         ws = _setup_workspace(tmp_path)
         engine = _make_engine(ws)
 
         log = await engine.lightweight_observe(_make_trace())
-        assert "task_id" in log
-        assert "outcome" in log
-        assert "note" in log
-        assert "patterns_noticed" in log
-        assert "suggestions" in log
-        assert "urgency" in log
+        assert set(log) == {"patterns_noticed", "suggestions", "urgency"}
+        assert isinstance(log["patterns_noticed"], list)
+        assert isinstance(log["suggestions"], list)
+        assert log["urgency"] in {"none", "low", "high"}
 
     @pytest.mark.asyncio
     async def test_deep_analyze_reads_logs(self, tmp_path):

@@ -36,7 +36,7 @@ class RollbackManager:
             backup_path.mkdir(parents=True, exist_ok=False)
         except Exception as exc:
             logger.error("Failed to create backup directory %s: %s", backup_path, exc)
-            raise RuntimeError(f"failed to create backup directory: {backup_path}") from exc
+            raise RuntimeError(f"Failed to create backup directory: {backup_path}") from exc
 
         normalized_files: list[str] = []
         missing_files: list[str] = []
@@ -181,15 +181,15 @@ class RollbackManager:
                 continue
 
             if timestamp < cutoff:
-                # 仅保留仍在保留窗口内的 active 备份；过期 active 同样清理，避免泄漏。
-                if metadata.get("status") == "active":
+                status = str(metadata.get("status", "active"))
+                if status == "active":
                     logger.warning(
                         "Deleting expired active backup (retention exceeded): %s",
                         backup_dir.name,
                     )
                 try:
                     shutil.rmtree(backup_dir)
-                    logger.info("Deleted expired backup: %s", backup_dir.name)
+                    logger.info("Deleted expired backup: %s (status=%s)", backup_dir.name, status)
                 except Exception as exc:
                     logger.error("Failed deleting backup %s: %s", backup_dir.name, exc)
 
