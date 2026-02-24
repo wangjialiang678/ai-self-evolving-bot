@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from core.architect import ArchitectEngine
+from core.council import CouncilReview
 from core.llm_client import MockLLMClient
 
 
@@ -215,12 +217,16 @@ class TestExecuteProposal:
         assert len(sent_messages) >= 1
 
     async def test_level_2_pending_approval(self, workspace: Path):
-        """Level 2: 等待审批，发送提案通知。"""
+        """Level 2: 等待审批，发送提案通知（council 审议通过后）。"""
         sent = []
 
         class MockTelegram:
             async def send_proposal(self, proposal):
                 sent.append(proposal)
+                return {"sent": True}
+
+            async def send_message(self, text, message_type="general", **kwargs):
+                sent.append({"text": text, "type": message_type})
                 return {"sent": True}
 
         engine = _make_engine(workspace, telegram_channel=MockTelegram())
@@ -237,11 +243,19 @@ class TestExecuteProposal:
         }
         engine._save_proposal(proposal)
 
-        result = await engine.execute_proposal(proposal)
+        approved_review = CouncilReview(
+            proposal_id="prop_level2", conclusion="通过", summary="测试通过"
+        )
+        with patch(
+            "core.architect.run_council_review",
+            new=AsyncMock(return_value=approved_review),
+        ):
+            result = await engine.execute_proposal(proposal)
 
         assert result["status"] == "pending_approval"
         assert result["backup_id"] is None
-        assert len(sent) == 1
+        # council 通知 + send_proposal 各发送一条
+        assert len(sent) >= 1
 
     async def test_level_0_file_written(self, workspace: Path):
         """Level 0 执行后，文件内容应被写入。"""

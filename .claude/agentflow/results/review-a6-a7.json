@@ -1,0 +1,116 @@
+{
+  "verdict": "request_changes",
+  "modules_reviewed": ["A6-compaction", "A7-observer"],
+  "tests_passed": true,
+  "test_count": 13,
+  "issues": [
+    {
+      "severity": "critical",
+      "id": "A6-01",
+      "module": "A6",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/context/compaction.py",
+      "line": 74,
+      "description": "compact() return dict key mismatch: spec requires 'compressed_history' but code returns 'compacted_history'. Also spec requires nested 'stats' dict with 'original_tokens', 'compressed_tokens', 'ratio', but code returns flat keys 'original_tokens', 'compacted_tokens', 'compression_ratio'. This is an API contract violation that will break any caller expecting the spec schema.",
+      "spec_expected": "{\"compressed_history\": [...], \"summary\": \"...\", \"stats\": {\"original_tokens\": N, \"compressed_tokens\": N, \"ratio\": 0.15}}",
+      "code_actual": "{\"compacted_history\": [...], \"summary\": \"...\", \"original_tokens\": N, \"compacted_tokens\": N, \"compression_ratio\": N, ...}"
+    },
+    {
+      "severity": "critical",
+      "id": "A7-01",
+      "module": "A7",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/observer/engine.py",
+      "line": 86,
+      "description": "lightweight_observe() return dict does not match spec. Spec requires {\"patterns_noticed\": [...], \"suggestions\": [...], \"urgency\": \"none\"|\"low\"|\"high\"} but code returns {\"timestamp\", \"task_id\", \"outcome\", \"tokens\", \"model\", \"signals\", \"error_type\", \"note\"}. None of the three required fields exist in the response. This is a complete API contract violation.",
+      "spec_expected": "{\"patterns_noticed\": [...], \"suggestions\": [...], \"urgency\": \"none|low|high\"}",
+      "code_actual": "{\"timestamp\", \"task_id\", \"outcome\", \"tokens\", \"model\", \"signals\", \"error_type\", \"note\"}"
+    },
+    {
+      "severity": "major",
+      "id": "A6-02",
+      "module": "A6",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/context/compaction.py",
+      "line": 54,
+      "description": "should_compact() division by zero not fully guarded. The guard 'if budget <= 0: return False' handles zero and negative, which is good. However, the spec says nothing about negative tokens or budget. The current behavior (returning False for negative budget) is reasonable but should be documented.",
+      "recommendation": "Minor -- add a docstring note about negative inputs."
+    },
+    {
+      "severity": "major",
+      "id": "A7-02",
+      "module": "A7",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/observer/engine.py",
+      "line": 150,
+      "description": "deep_analyze() return dict is missing 'finding_id' auto-generation test coverage. The code generates finding_id as 'f_001', 'f_002', etc. when not provided by LLM, but no test verifies this behavior. If the LLM returns findings without finding_id (the common case), this path is exercised but untested.",
+      "recommendation": "Add a test asserting finding_id is present and correctly formatted."
+    },
+    {
+      "severity": "major",
+      "id": "A7-03",
+      "module": "A7",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/observer/scheduler.py",
+      "line": 73,
+      "description": "_is_in_daily_window() has a midnight boundary bug. If daily_time is '00:15' and current time is '23:50', the abs delta is ~23.5 hours, correctly outside window. But if daily_time is '23:50' and current time is '00:10' (next day), abs(now - scheduled) uses same-day replace, so scheduled='00:10 today at 23:50', delta=23h40m, which is >30min, so it correctly rejects. However, if the check runs at exactly midnight (00:00) with daily_time='23:45', scheduled becomes today-00:00 replaced to 23:45, delta=23h45m -- this is fine. The logic appears correct but is fragile for edge cases near midnight.",
+      "recommendation": "Consider using modular arithmetic for time-of-day comparison to be more robust."
+    },
+    {
+      "severity": "major",
+      "id": "A6-03",
+      "module": "A6",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_compaction.py",
+      "line": 27,
+      "description": "MockLLMClient is configured with only 'gemini-flash' key, but compact() calls _flush_to_memory (gemini-flash) AND _summarize (gemini-flash) sequentially. Both calls will return the same mock response. The flush call expects a JSON array but receives 'これは压缩后的摘要。用户在讨论项目架构。' (not valid JSON), so it silently returns []. The test_compact_preserves_recent does not verify flush behavior, so this is masked. The mock setup is not precise enough for multi-call scenarios.",
+      "recommendation": "Use a stateful mock or separate mock instances for flush vs summarize calls."
+    },
+    {
+      "severity": "minor",
+      "id": "A6-04",
+      "module": "A6",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/context/compaction.py",
+      "line": 109,
+      "description": "compact() returns extra fields not in spec: 'flushed_to_memory', 'key_decisions_preserved', 'key_decisions_total'. While extra fields are generally harmless, they add undocumented coupling.",
+      "recommendation": "Document the full return schema or trim to match spec."
+    },
+    {
+      "severity": "minor",
+      "id": "A7-04",
+      "module": "A7",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/observer/engine.py",
+      "line": 219,
+      "description": "deep_analyze() overwrites the report file if called multiple times on the same day. If both daily and emergency triggers fire, the second call silently overwrites the first report.",
+      "recommendation": "Append trigger type to filename (e.g., '2026-02-23_emergency.md') or append rather than overwrite."
+    },
+    {
+      "severity": "minor",
+      "id": "A7-05",
+      "module": "A7",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/observer/scheduler.py",
+      "line": 49,
+      "description": "Emergency trigger fires before daily check, which means emergency bypasses the _daily_done_date guard. If emergency fires and then daily window is also active, daily could also fire in the next check_and_run() call. This may be intentional but is not tested.",
+      "recommendation": "Add test for scenario where both conditions are true simultaneously."
+    },
+    {
+      "severity": "minor",
+      "id": "A6-05",
+      "module": "A6",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/context/compaction.py",
+      "line": 187,
+      "description": "verify_compaction uses exact substring match ('if decision in target_text') which is brittle. LLM summaries may rephrase decisions, causing false negatives in quality assessment. The 80-char truncation in _extract_key_decisions further complicates matching.",
+      "recommendation": "Consider fuzzy matching or semantic similarity if quality verification is critical."
+    },
+    {
+      "severity": "minor",
+      "id": "A7-06",
+      "module": "A7",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_observer.py",
+      "line": 196,
+      "description": "test_no_emergency_below_threshold sets daily_time to '00:00'. If tests run near midnight, this test could flakily trigger the daily path. The assertion 'report is None or report[\"trigger\"] == \"daily\"' acknowledges this but does not prevent flakiness.",
+      "recommendation": "Set daily_time to a time that is guaranteed to be outside the window during test execution, e.g., '12:00' when tests typically run in CI."
+    }
+  ],
+  "summary": {
+    "critical_count": 2,
+    "major_count": 4,
+    "minor_count": 5,
+    "blocking": true,
+    "blocking_reason": "Two critical API contract violations: A6 compact() return schema and A7 lightweight_observe() return schema do not match spec."
+  }
+}

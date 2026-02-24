@@ -13,10 +13,19 @@ build/
 # OS
 .DS_Store
 
-# Project
+# Project runtime data
 workspace/backups/
 workspace/logs/
 workspace/metrics/events.jsonl
+workspace/.bootstrap_state.json
+workspace/signals/
+workspace/telegram_queue/
+workspace/observations/
+workspace/memory/
+
+# Runtime artifacts
+nohup.out
+claude-progress.txt
 
 # Cache
 .pytest_cache/

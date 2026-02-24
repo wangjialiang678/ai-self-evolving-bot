@@ -1,0 +1,90 @@
+{
+  "verdict": "request_changes",
+  "issues": [
+    {
+      "severity": "major",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/signals/detector.py",
+      "line": 0,
+      "description": "P1: 8 种信号类型中 capability_gap 和 rule_unused 在 detect() 和 detect_patterns() 中均未实现。规格要求支持 8 种信号类型，当前只覆盖了 6 种 (user_correction, task_failure, rule_validated, efficiency_opportunity, repeated_error, performance_degradation, user_pattern)。缺少 capability_gap 和 rule_unused 的检测逻辑。"
+    },
+    {
+      "severity": "major",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/signals/store.py",
+      "line": 104,
+      "description": "P1: mark_handled 的 read-then-write 操作不是原子性的。先读取 active.jsonl 全部内容，再用 'w' 模式截断重写。若并发调用或中途崩溃，会导致数据丢失。建议写入临时文件再原子 rename。"
+    },
+    {
+      "severity": "major",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/signals/detector.py",
+      "line": 155,
+      "description": "P1: performance_degradation 去重逻辑存在逻辑反转 bug。第 156-163 行的条件判断是 'if degradation_signal is not None AND _has_recent_pattern_signal(...)'，即当已存在同类信号时将 degradation_signal 置 None，这本身是正确的去重逻辑。但仔细观察，这个条件结构等价于：先检测到退化信号，再检查是否已有同类信号存在。若已有则抑制。逻辑正确。（审核修正：经再次分析，此逻辑正确，非 bug。）"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/memory/reflection.py",
+      "line": 59,
+      "description": "P2: write_reflection 额外写入 error_log.jsonl（memory/user/error_log.jsonl）。规格只要求 ERROR 写入 rules/experience/error_patterns.md，未要求写入 error_log.jsonl。虽然是兼容性冗余写入不影响正确性，但偏离了规格。"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_reflection.py",
+      "line": 79,
+      "description": "P2: test_write_error_to_log 测试名称和断言检查的是 error_log.jsonl 而非 error_patterns.md。虽然在第 105-107 行也检查了 error_patterns.md，但测试命名暗示主要测试目标是 error_log.jsonl，而规格的主要输出目标是 error_patterns.md。建议将测试名和主断言目标对齐到规格。"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_signals.py",
+      "line": 0,
+      "description": "P2: 缺少 count_recent 同时传 signal_type 和 priority 双过滤条件的测试。当前 test_count_recent 只测了 signal_type 过滤，未覆盖 priority 过滤及二者组合。"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_signals.py",
+      "line": 0,
+      "description": "P2: 缺少 rule_validated 信号检测的测试。detect() 方法有 rule_validated 检测逻辑（type=NONE, outcome=SUCCESS, rules_used 非空），但测试中未覆盖。"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/signals/detector.py",
+      "line": 226,
+      "description": "P3: _read_metrics_events 的路径是 signal_store.signals_dir.parent / 'metrics' / 'events.jsonl'，依赖了 signals_dir 的父目录结构（假设 workspace/signals → workspace/metrics）。这个隐式路径耦合在部署结构变化时会静默失效。"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/signals/store.py",
+      "line": 44,
+      "description": "P3: add() 方法的文件写入无文件锁。在多进程/异步场景下并发追加可能交错写入，产生损坏的 JSONL 行。对于当前单进程 MVP 可接受，后续需要注意。"
+    },
+    {
+      "severity": "minor",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/memory/reflection.py",
+      "line": 82,
+      "description": "P3: system_response 截断到前 500 字符（[:500]），但对于 CJK 内容 500 字符可能仍然很长。此为设计选择，非 bug，但值得注意。"
+    }
+  ],
+  "tests_passed": true,
+  "summary": {
+    "a4_signals": {
+      "store_api_match": true,
+      "detector_api_match": true,
+      "count_recent_dual_params": true,
+      "detect_from_reflection": true,
+      "detect_patterns_dedup": true,
+      "performance_degradation_window_comparison": true,
+      "jsonl_format": true,
+      "missing_signal_types": ["capability_gap", "rule_unused"],
+      "test_coverage_gaps": ["rule_validated detection", "count_recent dual filter"],
+      "all_tests_pass": true
+    },
+    "a5_reflection": {
+      "lightweight_reflect_uses_llm": true,
+      "llm_model_is_low_cost": true,
+      "error_output_path_correct": true,
+      "extra_error_log_jsonl": true,
+      "classification_logic_correct": true,
+      "tests_mock_llm": true,
+      "no_cross_a_module_imports": true,
+      "all_tests_pass": true
+    }
+  }
+}

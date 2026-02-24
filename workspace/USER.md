@@ -1,11 +1,9 @@
-# User Profile
+# 用户档案
 
-This file stores learned user preferences and interaction patterns.
+- **称呼**: michael
+- **角色**: 产品经理
+- **经验**: 高级
+- **常用语言**: 
+- **关注方向**: AI
 
-## Preferences
-
-- (Will be populated through interaction)
-
-## Communication Style
-
-- (Will be learned from feedback)
+> 由 Bootstrap 流程生成于 2026-02-24

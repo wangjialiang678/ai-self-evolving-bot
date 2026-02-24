@@ -1,0 +1,20 @@
+{
+  "proposal_id": "prop_002",
+  "level": 0,
+  "trigger_source": "observer_report:2026-02-24",
+  "problem": "用户在 task_0001 主动提供技术背景与兴趣方向，但此信息未持久化，后续交互无法利用",
+  "solution": "在 user_preferences.md 中新增用户技术背景记录机制，当用户主动分享技能、兴趣、工作领域时自动更新偏好文件",
+  "files_affected": [
+    "rules/experience/user_preferences.md"
+  ],
+  "blast_radius": "trivial",
+  "expected_effect": "后续交互更个性化，减少重复询问，提升用户体验",
+  "verification_method": "检查未来 5 天内是否有用户背景信息被正确记录到 user_preferences.md，以及后续任务是否引用该信息",
+  "verification_days": 5,
+  "rollback_plan": "删除新增的偏好记录规则，恢复原有配置",
+  "new_content": "## User Technical Background Tracking\n\n### When to Update\n- User explicitly shares technical skills or expertise\n- User mentions work domain or industry\n- User expresses interest in specific technologies\n- User describes their role or experience level\n\n### Information to Capture\n```markdown\n## Technical Background\n- **Skills**: [languages, frameworks, tools]\n- **Domain**: [industry, work area]\n- **Interests**: [technologies, topics]\n- **Experience Level**: [junior, mid, senior, expert]\n- **Last Updated**: YYYY-MM-DD\n```\n\n### Usage Guidelines\n- Reference user background when suggesting solutions\n- Adjust technical depth based on experience level\n- Prioritize technologies aligned with user interests\n- Update incrementally as new information emerges",
+  "status": "executed",
+  "created_at": "2026-02-24T02:46:23",
+  "executed_at": "2026-02-24T02:46:23",
+  "backup_id": "backup_20260224_024623_prop_002"
+}

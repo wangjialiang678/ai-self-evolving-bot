@@ -1,0 +1,112 @@
+{
+  "verdict": "request_changes",
+  "tests_passed": true,
+  "modules_reviewed": ["A2-rollback", "A3-metrics"],
+  "issues": [
+    {
+      "severity": "critical",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/rollback.py",
+      "line": 229,
+      "description": "backup_id 格式不符合规格。规格要求 'backup_{datetime}_{proposal_id}'，实际生成 '{datetime}_{proposal_id}'（缺少 'backup_' 前缀）。_make_backup_id 返回 f\"{now.strftime('%Y%m%d_%H%M%S')}_{proposal_id}\"，缺少 'backup_' 前缀。"
+    },
+    {
+      "severity": "major",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/rollback.py",
+      "line": 35,
+      "description": "backup() 在目录创建失败时仍然返回 backup_id（第 39 行 'return backup_id'），但此时没有写入 metadata.json。调用方拿到 backup_id 后如果尝试 rollback 或 list_backups，会遇到 metadata_not_found 错误。应该抛出异常或返回明确的失败标记（如 None 或空字符串）。"
+    },
+    {
+      "severity": "major",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/rollback.py",
+      "line": 183,
+      "description": "cleanup() 跳过 status='active' 的备份永不删除。规格只要求按 retention_days 删除过期备份，没有要求永久保留 active 备份。如果一个 active 备份已超过 retention_days（例如 180 天前的备份），它仍然永远不会被清理，导致磁盘泄漏。如果这是有意设计的保守策略，应在方法文档注释中显式说明。"
+    },
+    {
+      "severity": "major",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/metrics.py",
+      "line": 211,
+      "description": "_iter_events() 每次调用都读取整个 events.jsonl 文件到内存。get_trend() 在循环中对每一天调用 get_daily_summary()，而 get_daily_summary() 调用 _iter_events_for_date()，后者又调用 _iter_events()。对于 30 天趋势，这意味着整个文件被读取和解析 30 次。随着 events.jsonl 增长（生产中可能达到数万行），这将造成严重的性能问题。建议：在 get_trend 中一次读取所有事件再按日分组。"
+    },
+    {
+      "severity": "major",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/metrics.py",
+      "line": 158,
+      "description": "should_trigger_repair() 的成功率下降检测窗口定义模糊。_success_rate_in_window(10, 4) 计算第 10 到第 4 天前的成功率作为 baseline，_success_rate_in_window(3, 1) 计算第 3 到第 1 天前的成功率作为 recent。但规格说'3天成功率下降>20%'。当前实现：(1) baseline 不包含最近 3 天的数据（day-9 到 day-3），recent 也不包含今天（day-2 到 today）；(2) 窗口划分的偏移逻辑需要仔细验证 _success_rate_in_window 中 start_days_ago-1 的计算是否正确对齐日期范围。"
+    },
+    {
+      "severity": "major",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/metrics.py",
+      "line": 204,
+      "description": "events.jsonl 写入无文件锁。如果多个进程同时调用 _append_event()，可能导致交错写入产生损坏的 JSONL 行。在多进程/多代理环境下需要 fcntl.flock 或类似机制保护。"
+    },
+    {
+      "severity": "minor",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/rollback.py",
+      "line": 26,
+      "description": "backup() 使用 datetime.now() 生成时间戳，但没有使用 UTC。在跨时区部署或系统时钟变动时，备份排序和 cleanup 的时间比较可能出错。建议使用 datetime.utcnow() 或 datetime.now(timezone.utc)。"
+    },
+    {
+      "severity": "minor",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/metrics.py",
+      "line": 42,
+      "description": "_now_iso() 使用 datetime.now() 而非 UTC。与 A2 同理，在跨时区环境下 _iter_events_for_date 按日期前缀匹配和 _iter_events_between 的日期比较可能不一致。"
+    },
+    {
+      "severity": "minor",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_rollback.py",
+      "line": 147,
+      "description": "test_list_backups_ordered 使用 time.sleep(0.01) 来确保两个备份的时间戳不同。这在快速 CI 环境中可能不稳定（如果 sleep 不精确导致秒级时间戳相同）。建议通过 mock datetime.now() 来产生确定性的时间差。"
+    },
+    {
+      "severity": "minor",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_metrics.py",
+      "line": 0,
+      "description": "测试缺失：没有测试 should_trigger_repair() 的成功率下降路径（仅测试了 CRITICAL 信号路径）。规格要求'3天成功率下降>20%'也应触发，但没有对应测试用例。"
+    },
+    {
+      "severity": "minor",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_metrics.py",
+      "line": 0,
+      "description": "测试缺失：flush_daily 没有测试传入 target_date 参数的情况。规格要求 flush_daily 接受 target_date 参数，虽然代码实现了，但测试只验证了默认参数（今天）。"
+    },
+    {
+      "severity": "minor",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/tests/test_metrics.py",
+      "line": 0,
+      "description": "测试缺失：get_trend 未测试不支持的 metric 名称抛出 ValueError 的行为。"
+    },
+    {
+      "severity": "minor",
+      "module": "A3",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/metrics.py",
+      "line": 82,
+      "description": "get_daily_summary 的 target_date 参数类型为 str | None，但规格中未说明格式校验。如果传入非 ISO 格式字符串（如 '2024/01/01'），_iter_events_for_date 的 startswith 匹配会静默返回空列表，不会报错。建议添加格式验证。"
+    },
+    {
+      "severity": "minor",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/rollback.py",
+      "line": 100,
+      "description": "rollback() 中 files 列表被 list() 包装为副本（第100行），但 missing_files 使用 set()（第101行）。如果 metadata 被恶意篡改，missing_files 中包含路径遍历字符（如 '../../etc/passwd'），rollback 会在 workspace 外删除文件。不过 _normalize_to_workspace_relative 在 backup 阶段已做过过滤，风险较低。"
+    },
+    {
+      "severity": "minor",
+      "module": "A2",
+      "file": "/Users/michael/projects/AI自进化系统/extensions/evolution/rollback.py",
+      "line": 104,
+      "description": "rollback() 不是原子操作。如果恢复到一半失败（例如第 3 个文件恢复失败），前 2 个文件已经被覆盖，系统处于不一致状态。建议先复制到临时目录再原子替换，或至少在文档中注明此限制。"
+    }
+  ]
+}

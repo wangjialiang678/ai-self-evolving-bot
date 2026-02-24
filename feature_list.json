@@ -1,0 +1,368 @@
+[
+  {
+    "category": "functional",
+    "description": "A1 种子规则：workspace/rules/ 包含 constitution/ 和 experience/ 两类规则文件，config/defaults/ 包含 Best Practice 默认配置",
+    "steps": [
+      "步骤 1: 检查 workspace/rules/constitution/ 目录存在且包含 5 个 MD 文件",
+      "步骤 2: 检查 workspace/rules/experience/ 目录存在且包含 7 个 MD 文件",
+      "步骤 3: 检查 config/defaults/ 包含 3 个 MD 默认配置",
+      "步骤 4: 运行 pytest tests/ -k seed_rules 验证规则加载"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "A2 回滚系统：extensions/evolution/rollback.py 实现文件备份和自动回滚，支持按 proposal_id 备份和恢复",
+    "steps": [
+      "步骤 1: 检查 extensions/evolution/rollback.py 存在",
+      "步骤 2: 运行 pytest tests/ -k rollback 验证备份/恢复逻辑",
+      "步骤 3: 验证 workspace/backups/ 目录可正确写入备份文件"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "A3 指标追踪：extensions/evolution/metrics.py 记录事件到 events.jsonl，生成每日 YAML 摘要",
+    "steps": [
+      "步骤 1: 检查 extensions/evolution/metrics.py 存在",
+      "步骤 2: 运行 pytest tests/ -k metrics 验证事件记录和摘要生成",
+      "步骤 3: 验证 workspace/metrics/ 目录写入正确"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "A4 信号系统：extensions/signals/detector.py 实现 8 种信号类型检测，store.py 管理 active/archive JSONL",
+    "steps": [
+      "步骤 1: 检查 extensions/signals/detector.py 和 store.py 存在",
+      "步骤 2: 运行 pytest tests/ -k signal 验证信号检测和存储",
+      "步骤 3: 验证 workspace/signals/ 目录的 active.jsonl 写入"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "A5 反思引擎：extensions/memory/reflection.py 使用轻量 LLM 从任务轨迹中提取教训",
+    "steps": [
+      "步骤 1: 检查 extensions/memory/reflection.py 存在",
+      "步骤 2: 运行 pytest tests/ -k reflection 验证反思提取逻辑",
+      "步骤 3: 验证反思输出格式包含 lesson/confidence/category 字段"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "A6 Compaction：extensions/context/compaction.py 在 token 超过 85% 时触发对话历史压缩",
+    "steps": [
+      "步骤 1: 检查 extensions/context/compaction.py 存在",
+      "步骤 2: 运行 pytest tests/ -k compaction 验证压缩触发和输出",
+      "步骤 3: 验证压缩后保留关键上下文信息"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "A7 Observer：extensions/observer/engine.py 实现轻量和深度双模式观察，scheduler.py 管理触发调度",
+    "steps": [
+      "步骤 1: 检查 extensions/observer/engine.py 和 scheduler.py 存在",
+      "步骤 2: 运行 pytest tests/ -k observer 验证双模式分析",
+      "步骤 3: 验证 workspace/observations/ 目录的报告输出"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B1 LLM 网关：core/llm_client.py 支持 Anthropic Claude Opus 和 Qwen via NVIDIA 双模型调用",
+    "steps": [
+      "步骤 1: 检查 core/llm_client.py 存在",
+      "步骤 2: 运行 pytest tests/ -k llm_client 验证 mock 调用",
+      "步骤 3: 验证 complete() 方法支持 model='opus' 和 model='qwen' 参数"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B2 规则解释器：core/rules.py 读取/解析规则文件，支持 constitution（始终注入）和 experience（按相关性过滤）两类",
+    "steps": [
+      "步骤 1: 检查 core/rules.py 存在",
+      "步骤 2: 运行 pytest tests/ -k rules 验证规则加载和过滤",
+      "步骤 3: 验证 constitution 规则始终包含在输出中",
+      "步骤 4: 验证 experience 规则按相关性评分过滤"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B2 上下文引擎：core/context.py 管理 token 预算，组装 system_prompt + rules + memory + history",
+    "steps": [
+      "步骤 1: 检查 core/context.py 存在",
+      "步骤 2: 运行 pytest tests/ -k context 验证 token 预算管理",
+      "步骤 3: 验证 prompt 组装顺序：规则 → 记忆 → 历史 → 用户消息"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B3 记忆系统：core/memory.py 管理对话历史和分类记忆（projects/ + user/），支持检索",
+    "steps": [
+      "步骤 1: 检查 core/memory.py 存在",
+      "步骤 2: 运行 pytest tests/ -k memory 验证记忆存储和检索",
+      "步骤 3: 验证 workspace/memory/ 目录的分类写入"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B4 Telegram 出站通知：core/telegram.py 支持提案审批键盘、每日简报、紧急通知、勿扰时段、频率控制、消息排队",
+    "steps": [
+      "步骤 1: 检查 core/telegram.py 存在",
+      "步骤 2: 运行 pytest tests/ -k telegram 验证消息模板和发送逻辑",
+      "步骤 3: 验证勿扰时段消息进入队列",
+      "步骤 4: 验证频率限制（提案 ≤2/天，Architect ≤3/天）",
+      "步骤 5: 验证审批回调解析（approve/reject/discuss）"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B5 Architect 引擎：core/architect.py 实现观察分析 → 提案生成 → 审批 → 执行 → 验证 完整流程",
+    "steps": [
+      "步骤 1: 检查 core/architect.py 存在",
+      "步骤 2: 运行 pytest tests/ -k architect 验证提案生命周期",
+      "步骤 3: 验证 Level 0 自动执行、Level 1 通知后执行、Level 2 人工审批",
+      "步骤 4: 验证 workspace/architect/proposals/ 的提案 JSON 写入"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B5 AgentLoop：core/agent_loop.py 实现核心调用链 规则注入 → 上下文组装 → LLM 推理 → 后处理链（反思/信号/Observer/指标）",
+    "steps": [
+      "步骤 1: 检查 core/agent_loop.py 存在",
+      "步骤 2: 运行 pytest tests/ -k agent_loop 验证完整调用链",
+      "步骤 3: 验证 process_message() 返回包含 system_response 的 trace",
+      "步骤 4: 验证后处理链顺序执行且不阻塞主响应"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B6 Bootstrap 引导：core/bootstrap.py 实现 3 阶段引导流程（背景 → 项目 → 偏好），写入 USER.md 和配置",
+    "steps": [
+      "步骤 1: 检查 core/bootstrap.py 存在",
+      "步骤 2: 运行 pytest tests/ -k bootstrap 验证三阶段流转",
+      "步骤 3: 验证 workspace/USER.md 写入",
+      "步骤 4: 验证 is_bootstrapped() 状态判断正确"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B7 main.py 入口：初始化所有模块、Telegram 消息循环、定时调度器、dry-run 模式、信号处理",
+    "steps": [
+      "步骤 1: 检查 main.py 存在",
+      "步骤 2: 验证 build_app() 正确初始化所有模块",
+      "步骤 3: 验证 --dry-run 模式可在无 Telegram 下本地交互",
+      "步骤 4: 验证 SIGINT/SIGTERM 信号优雅退出"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "B7 Config 加载：core/config.py EvoConfig 从 evo_config.yaml 读取配置，支持默认值和嵌套访问",
+    "steps": [
+      "步骤 1: 检查 core/config.py 和 config/evo_config.yaml 存在",
+      "步骤 2: 运行 pytest tests/ -k config 验证配置加载",
+      "步骤 3: 验证 quiet_hours、observer_schedule、architect_schedule 可正确读取"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "测试覆盖：280 个测试全部通过，LLM 调用全 mock",
+    "steps": [
+      "步骤 1: 运行 python -m pytest tests/ -q",
+      "步骤 2: 验证 280 passed，0 failed",
+      "步骤 3: 确认无真实 LLM API 调用（全 mock）"
+    ],
+    "passes": true
+  },
+
+  {
+    "category": "functional",
+    "description": "【缺口1-A】MessageBus 消息总线：创建 core/channels/bus.py，实现 InboundMessage/OutboundMessage 数据类和异步队列",
+    "steps": [
+      "步骤 1: 参考 nanobot/bus/queue.py + events.py 源码（.venv/lib/python3.14/site-packages/nanobot/bus/）",
+      "步骤 2: 创建 core/channels/__init__.py 和 core/channels/bus.py",
+      "步骤 3: 实现 InboundMessage（channel, user_id, text, metadata）和 OutboundMessage（channel, user_id, text, reply_markup）数据类",
+      "步骤 4: 实现 MessageBus 类：publish_inbound(), consume_inbound(), publish_outbound(), consume_outbound() 异步队列方法",
+      "步骤 5: loguru 替换为 import logging; logger = logging.getLogger(__name__)",
+      "步骤 6: 编写单元测试 tests/test_bus.py 验证消息入队和消费",
+      "步骤 7: 运行 pytest tests/test_bus.py 确认通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口1-B】BaseChannel 抽象基类：创建 core/channels/base.py，定义通道接口",
+    "steps": [
+      "步骤 1: 参考 nanobot/channels/base.py 源码（127 行）",
+      "步骤 2: 创建 core/channels/base.py",
+      "步骤 3: 实现 BaseChannel 抽象类：start(), stop(), send_message() 接口",
+      "步骤 4: loguru → stdlib logging 适配",
+      "步骤 5: import 路径从 nanobot.* → core.channels.* 适配",
+      "步骤 6: 编写测试验证接口定义正确"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口1-C】Telegram 双向通道：创建 core/channels/telegram.py，实现 long polling 接收用户消息",
+    "steps": [
+      "步骤 1: 参考 nanobot/channels/telegram.py 源码（421 行）",
+      "步骤 2: 创建 core/channels/telegram.py（区别于现有 core/telegram.py 出站模块）",
+      "步骤 3: 实现 TelegramChannel(BaseChannel)，支持 long polling 接收消息",
+      "步骤 4: TelegramConfig 替换为简单 dataclass（token, allow_from, proxy 字段）",
+      "步骤 5: loguru → stdlib logging 适配",
+      "步骤 6: 接收消息后 publish 到 MessageBus inbound 队列",
+      "步骤 7: 监听 MessageBus outbound 队列并发送回复",
+      "步骤 8: 编写单元测试 tests/test_telegram_channel.py（mock Telegram API）",
+      "步骤 9: 运行测试确认通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口1-D】ChannelManager 通道管理器：创建 core/channels/manager.py，统一管理多通道生命周期",
+    "steps": [
+      "步骤 1: 参考 nanobot/channels/manager.py 源码（227 行）",
+      "步骤 2: 创建 core/channels/manager.py",
+      "步骤 3: 实现 ChannelManager：register_channel(), start_all(), stop_all()",
+      "步骤 4: nanobot.config.schema → core.config.EvoConfig 适配",
+      "步骤 5: loguru → stdlib logging 适配",
+      "步骤 6: 编写测试验证通道注册和生命周期管理"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口1-E】Bus 桥接集成：修改 main.py 加入 MessageBus 桥接循环，连接 channels 和 AgentLoop",
+    "steps": [
+      "步骤 1: 在 main.py 导入 MessageBus 和 ChannelManager",
+      "步骤 2: 在 build_app() 中初始化 MessageBus 和 ChannelManager",
+      "步骤 3: 注册 TelegramChannel（双向）到 ChannelManager",
+      "步骤 4: 实现桥接循环：bus.consume_inbound() → agent_loop.process_message() → bus.publish_outbound()",
+      "步骤 5: 替换现有 main.py 中的 run_telegram_loop() 为新的 channel 架构",
+      "步骤 6: 现有 core/telegram.py（出站通知）保留不动，改为往 bus 写 OutboundMessage",
+      "步骤 7: 验证 Bootstrap 流程在新 channel 架构下仍然正常工作",
+      "步骤 8: 验证审批回调（inline keyboard）在新架构下正常工作",
+      "步骤 9: 运行全量测试 pytest tests/ 确认无回归",
+      "步骤 10: dry-run 模式仍可用（不依赖 channels）"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口1-F】双向 Telegram 端到端验证：用户通过 Telegram 发消息 → AgentLoop 处理 → 回复用户，完整链路可工作",
+    "steps": [
+      "步骤 1: 启动系统（python main.py 或 --dry-run 模拟）",
+      "步骤 2: 通过 Telegram（或 mock）发送一条用户消息",
+      "步骤 3: 验证消息经过 MessageBus inbound → AgentLoop.process_message()",
+      "步骤 4: 验证回复经过 MessageBus outbound → TelegramChannel 发回用户",
+      "步骤 5: 验证 Bootstrap 未完成时进入引导流程",
+      "步骤 6: 验证 Bootstrap 已完成时进入正常对话",
+      "步骤 7: 验证出站通知（提案审批、每日简报）仍正常工作",
+      "步骤 8: 运行集成测试 pytest tests/integration/ 确认通过"
+    ],
+    "passes": true
+  },
+
+  {
+    "category": "functional",
+    "description": "【缺口2-A】HeartbeatService：创建 core/channels/heartbeat.py，定时读取 HEARTBEAT.md 生成心跳消息",
+    "steps": [
+      "步骤 1: 参考 nanobot/heartbeat/service.py 源码（130 行）",
+      "步骤 2: 创建 core/channels/heartbeat.py",
+      "步骤 3: 实现 HeartbeatService(workspace, on_heartbeat, interval_s=1800)",
+      "步骤 4: 定时读取 workspace/HEARTBEAT.md，解析任务列表",
+      "步骤 5: 通过 on_heartbeat 回调触发 AgentLoop.process_message()",
+      "步骤 6: loguru → stdlib logging 适配",
+      "步骤 7: 编写单元测试验证心跳触发和间隔控制",
+      "步骤 8: 运行测试确认通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口2-B】CronService：创建 core/channels/cron.py，支持 cron 表达式配置定时任务",
+    "steps": [
+      "步骤 1: 参考 nanobot/cron/service.py（352 行）和 types.py（59 行）源码",
+      "步骤 2: 在 pyproject.toml 添加 croniter>=2.0 依赖",
+      "步骤 3: 安装依赖：pip install croniter",
+      "步骤 4: 创建 core/channels/cron.py",
+      "步骤 5: 实现 CronService：register_job(cron_expr, callback), start(), stop()",
+      "步骤 6: 使用 croniter 解析 cron 表达式，计算下次触发时间",
+      "步骤 7: loguru → stdlib logging 适配",
+      "步骤 8: 编写单元测试验证 cron 表达式解析和触发",
+      "步骤 9: 运行测试确认通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口2-C】替换 run_scheduler：用 CronService 替换 main.py 中的 while 轮询调度器",
+    "steps": [
+      "步骤 1: 在 evo_config.yaml 添加 cron 配置项（observer_cron, architect_cron, briefing_cron）",
+      "步骤 2: 在 main.py 中初始化 CronService",
+      "步骤 3: 注册定时任务：Observer 深度分析（默认 0 2 * * *）、Architect（默认 0 3 * * *）、每日简报（默认 30 8 * * *）",
+      "步骤 4: 集成 HeartbeatService 到启动流程",
+      "步骤 5: 删除或注释掉旧的 run_scheduler() 函数",
+      "步骤 6: 验证 Observer 和 Architect 按 cron 配置正确触发",
+      "步骤 7: 验证 Heartbeat 定时读取 HEARTBEAT.md 并触发",
+      "步骤 8: 运行全量测试 pytest tests/ 确认无回归",
+      "步骤 9: dry-run 模式下 cron 和 heartbeat 仍可工作"
+    ],
+    "passes": true
+  },
+
+  {
+    "category": "functional",
+    "description": "【缺口3-A】Council 委员定义：创建 core/council.py，定义 4 种审议委员的 system prompt",
+    "steps": [
+      "步骤 1: 创建 core/council.py",
+      "步骤 2: 定义 4 个委员角色的 system prompt 前缀：安全委员（风险/回滚/边界）、效率委员（成本/token/速度）、用户体验委员（用户感受/交互质量）、长期委员（架构演进/技术债）",
+      "步骤 3: 实现 CouncilReview 数据类：triggered_by, reviews[], conclusion",
+      "步骤 4: 每个 review 包含 role, concern, architect_response 字段"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口3-B】Council 审议逻辑：实现 run_council_review(proposal) 方法，用同一 LLM 依次扮演 4 个委员",
+    "steps": [
+      "步骤 1: 在 core/council.py 实现 run_council_review(proposal, llm_client) 异步方法",
+      "步骤 2: 依次用 4 个委员的 system prompt 调用 LLM，传入提案内容",
+      "步骤 3: 每个委员输出 concern（担忧）和 recommendation（建议）",
+      "步骤 4: 收集 4 个委员的 review 后，用一次额外 LLM 调用生成综合 conclusion（通过/修改后通过/否决）",
+      "步骤 5: 返回完整的 council_review 结构",
+      "步骤 6: 编写单元测试 tests/test_council.py（mock LLM 调用）",
+      "步骤 7: 运行测试确认通过"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "【缺口3-C】Council 集成到 Architect：在 architect.py 中集成审议会，提案 JSON 增加 council_review 字段",
+    "steps": [
+      "步骤 1: 在 core/architect.py 导入 council.run_council_review()",
+      "步骤 2: 添加触发条件：用户主动请求（消息中包含'审议'/'council'）或 Architect 建议（提案 level >= 2）",
+      "步骤 3: 审议结果写入提案 JSON 的 council_review 字段",
+      "步骤 4: 如果 conclusion 为'否决'，自动将提案状态改为 rejected",
+      "步骤 5: 如果 conclusion 为'修改后通过'，标记提案需要修改",
+      "步骤 6: Telegram 通知中展示审议摘要",
+      "步骤 7: 运行全量测试 pytest tests/ 确认无回归",
+      "步骤 8: 验证不触发审议时的提案流程不受影响"
+    ],
+    "passes": true
+  }
+]

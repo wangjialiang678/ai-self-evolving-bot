@@ -1,0 +1,20 @@
+{
+  "proposal_id": "prop_001",
+  "level": 0,
+  "trigger_source": "observer_report:2026-02-24",
+  "problem": "所有任务使用 opus 模型处理简单交互（用户介绍、系统响应），token 消耗稳定在 4100-4300 范围，存在模型选择过重导致的成本浪费",
+  "solution": "在 task_strategies.md 中新增任务复杂度分类规则：简单交互类任务（greeting、self-introduction、basic Q&A）优先使用 sonnet 模型，仅在需要深度推理或代码生成时使用 opus",
+  "files_affected": [
+    "rules/experience/task_strategies.md"
+  ],
+  "blast_radius": "small",
+  "expected_effect": "简单交互任务 token 消耗降低 40-60%，成本优化约 30%，不影响复杂任务质量",
+  "verification_method": "监控未来 5 天简单交互任务的模型选择分布和平均 token 消耗，对比当前基线（4200 tokens/task）",
+  "verification_days": 5,
+  "rollback_plan": "如发现用户满意度下降或响应质量问题，立即恢复全 opus 策略",
+  "new_content": "## Task Complexity Classification\n\n### Simple Interactions (Use Sonnet)\n- User greetings and introductions\n- Basic Q&A without code generation\n- Clarification requests\n- Acknowledgments and confirmations\n- Expected token range: 1500-2500\n\n### Complex Tasks (Use Opus)\n- Multi-file code generation or refactoring\n- Architecture design and system analysis\n- Debugging with context gathering\n- Tasks requiring deep reasoning or planning\n- Expected token range: 4000-8000\n\n### Model Selection Logic\n1. Analyze user intent from first message\n2. If task involves code/architecture/debugging → Opus\n3. If task is conversational/informational → Sonnet\n4. If uncertain → default to Opus for safety",
+  "status": "executed",
+  "created_at": "2026-02-24T02:46:23",
+  "executed_at": "2026-02-24T02:46:23",
+  "backup_id": "backup_20260224_024623_prop_001"
+}

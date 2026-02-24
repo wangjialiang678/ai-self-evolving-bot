@@ -101,23 +101,33 @@ class SignalStore:
             else:
                 keep_rows.append(row)
 
+        if not handled_rows and not keep_rows:
+            return
+
+        # 先追加到 archive（追加操作，失败不会丢数据）
+        if handled_rows:
+            try:
+                with self.archive_path.open("a", encoding="utf-8") as f:
+                    for row in handled_rows:
+                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.error("Failed to append archive.jsonl: %s", exc)
+                return  # archive 写入失败时不修改 active，保证数据不丢失
+
+        # 再原子重写 active（写临时文件 + rename）
+        tmp_path = self.active_path.with_suffix(".tmp")
         try:
-            with self.active_path.open("w", encoding="utf-8") as f:
+            with tmp_path.open("w", encoding="utf-8") as f:
                 for row in keep_rows:
                     f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            tmp_path.replace(self.active_path)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Failed to rewrite active.jsonl: %s", exc)
-            return
-
-        if not handled_rows:
-            return
-
-        try:
-            with self.archive_path.open("a", encoding="utf-8") as f:
-                for row in handled_rows:
-                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Failed to append archive.jsonl: %s", exc)
+            # 清理临时文件
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def count_recent(
         self,

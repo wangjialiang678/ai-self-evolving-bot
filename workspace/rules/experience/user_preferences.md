@@ -1,17 +1,23 @@
-# 用户偏好
+## User Technical Background Tracking
 
-本文件初始化为空模板，用于记录用户已确认偏好。
-仅在有明确证据时写入，避免将一次性反馈误判为长期偏好。
+### When to Update
+- User explicitly shares technical skills or expertise
+- User mentions work domain or industry
+- User expresses interest in specific technologies
+- User describes their role or experience level
 
-## 已确认偏好
-（待填充）
+### Information to Capture
+```markdown
+## Technical Background
+- **Skills**: [languages, frameworks, tools]
+- **Domain**: [industry, work area]
+- **Interests**: [technologies, topics]
+- **Experience Level**: [junior, mid, senior, expert]
+- **Last Updated**: YYYY-MM-DD
+```
 
-## 推测偏好（待验证）
-（待填充）
-
-## 禁止假设
-- 未被用户明确确认的偏好不得提升为“已确认”。
-
----
-最后更新：系统初始化
-验证状态：待验证
+### Usage Guidelines
+- Reference user background when suggesting solutions
+- Adjust technical depth based on experience level
+- Prioritize technologies aligned with user interests
+- Update incrementally as new information emerges

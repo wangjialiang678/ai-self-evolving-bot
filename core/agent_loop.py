@@ -64,6 +64,7 @@ class AgentLoop:
         # --- 对话状态 ---
         self._conversation_history: list[dict] = []
         self._task_counter: int = 0
+        self._background_tasks: set[asyncio.Task] = set()
 
         # --- 扩展模块（延迟初始化，允许部分缺失） ---
         self._reflection_engine = None
@@ -220,7 +221,9 @@ class AgentLoop:
         }
 
         # [7] 异步后处理链
-        asyncio.ensure_future(self._post_task_pipeline(task_trace))
+        task = asyncio.create_task(self._post_task_pipeline(task_trace))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
         return task_trace
 

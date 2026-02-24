@@ -43,6 +43,12 @@ _DEFAULTS: dict[str, Any] = {
             "repair_to_balanced": {"recovery_days": 2},
         },
     },
+    "cron": {
+        "observer_cron": "0 2 * * *",
+        "architect_cron": "0 3 * * *",
+        "briefing_cron": "30 8 * * *",
+        "heartbeat_interval": 1800,
+    },
 }
 
 
@@ -118,6 +124,26 @@ class EvoConfig:
     def evolution_strategy(self) -> str:
         """当前进化策略名称。"""
         return str(self.get("evolution_strategy.initial", "cautious"))
+
+    @property
+    def observer_cron(self) -> str:
+        """Observer 深度分析 cron 表达式。"""
+        return str(self.get("cron.observer_cron", "0 2 * * *"))
+
+    @property
+    def architect_cron(self) -> str:
+        """Architect 分析 cron 表达式。"""
+        return str(self.get("cron.architect_cron", "0 3 * * *"))
+
+    @property
+    def briefing_cron(self) -> str:
+        """每日简报 cron 表达式。"""
+        return str(self.get("cron.briefing_cron", "30 8 * * *"))
+
+    @property
+    def heartbeat_interval(self) -> int:
+        """心跳检测间隔（秒）。"""
+        return int(self.get("cron.heartbeat_interval", 1800))
 
     def get_approval_level_config(self, level: int) -> dict:
         """获取指定审批级别的配置。

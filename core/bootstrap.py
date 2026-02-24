@@ -82,9 +82,16 @@ class BootstrapFlow:
     # ------------------------------------------------------------------
 
     def is_bootstrapped(self) -> bool:
-        """检查是否已完成引导（workspace/USER.md 存在且非空）。"""
+        """检查是否已完成引导（USER.md 存在且所有阶段已完成）。"""
         user_md = self._root / "USER.md"
-        return user_md.exists() and user_md.stat().st_size > 0
+        if not (user_md.exists() and user_md.stat().st_size > 0):
+            return False
+        # 若有 state 文件，还需确认流程走完（避免 background 阶段写完 USER.md 后提前判定完成）
+        state_file = self._state_path()
+        if state_file.exists():
+            state = self._load_state()
+            return state.get("current_stage") == "completed"
+        return True  # 无 state 文件 = 外部直接写入 USER.md，向后兼容
 
     def get_current_stage(self) -> str:
         """获取当前引导阶段。

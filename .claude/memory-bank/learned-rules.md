@@ -82,3 +82,66 @@
   confidence: 1.0
   learned_at: 2026-02-23
   based_on: 批准 4 次，拒绝 0 次
+
+### learned-20260224004553
+- tool: Bash
+  action: allow
+  pattern: ^pkill
+  reason: 用户总是批准 pkill 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260224005439
+- tool: Bash
+  action: allow
+  pattern: ^sleep
+  reason: 用户总是批准 sleep 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260224194353
+- tool: Bash
+  action: allow
+  pattern: ^\#
+  reason: 用户总是批准 # 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260224202907
+- tool: Bash
+  action: allow
+  pattern: ^git\ \-C
+  reason: 用户总是批准 git -C 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 6 次，拒绝 0 次
+
+### learned-20260224211224
+- tool: Bash
+  action: allow
+  pattern: ^kill
+  reason: 用户总是批准 kill 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260224211224
+- tool: Bash
+  action: allow
+  pattern: ^ps
+  reason: 用户总是批准 ps 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260224224116
+- tool: Bash
+  action: allow
+  pattern: ^/Users/michael/projects/AI自进化系统/\.venv/bin/pytest
+  reason: 用户总是批准 /Users/michael/projects/AI自进化系统/.venv/bin/pytest 命令
+  confidence: 1.0
+  learned_at: 2026-02-24
+  based_on: 批准 3 次，拒绝 0 次

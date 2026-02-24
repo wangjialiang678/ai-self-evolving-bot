@@ -232,13 +232,14 @@ class RulesInterpreter:
         constitution_rules = self.get_constitution_rules()
         constitution_parts = []
         constitution_tokens = 0
-        for rule in constitution_rules:
-            est = rule.token_estimate()
-            if constitution_tokens + est > constitution_budget:
-                logger.warning(f"Constitution budget exceeded, skipping {rule.name}")
-                break
-            constitution_parts.append(f"### {rule.name}\n\n{rule.content}")
-            constitution_tokens += est
+        if constitution_budget > 0:
+            for rule in constitution_rules:
+                est = rule.token_estimate()
+                if constitution_tokens + est > constitution_budget:
+                    logger.warning(f"Constitution budget exceeded, skipping {rule.name}")
+                    break
+                constitution_parts.append(f"### {rule.name}\n\n{rule.content}")
+                constitution_tokens += est
 
         # 经验级：按相关性过滤
         experience_rules = self.get_experience_rules(task_context, max_tokens=experience_budget)

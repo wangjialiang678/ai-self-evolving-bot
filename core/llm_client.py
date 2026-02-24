@@ -108,7 +108,9 @@ class LLMClient(BaseLLMClient):
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
-        return response.content[0].text
+        if not response.content:
+            raise ValueError("Anthropic API returned empty content")
+        return response.content[0].text or ""
 
     async def _call_qwen(self, system_prompt: str, user_message: str, max_tokens: int) -> str:
         """通过 NVIDIA 平台调用 Qwen 3.5。"""
@@ -120,8 +122,11 @@ class LLMClient(BaseLLMClient):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
+            extra_body={"chat_template_kwargs": {"thinking": False}},
         )
-        return response.choices[0].message.content
+        if not response.choices:
+            raise ValueError("NVIDIA API returned empty choices")
+        return response.choices[0].message.content or ""
 
 
 class MockLLMClient(BaseLLMClient):

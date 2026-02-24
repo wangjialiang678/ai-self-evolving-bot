@@ -8,6 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from core.council import CouncilReview, run_council_review
 from core.llm_client import BaseLLMClient
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,26 @@ class ArchitectEngine:
         proposal_id = proposal.get("proposal_id", "unknown")
         level = self.determine_approval_level(proposal)
         proposal["level"] = level
+
+        # Level 2+: 触发 Council 审议
+        if level >= 2:
+            council_review = await self._run_council_if_needed(proposal)
+            if council_review is not None:
+                proposal["council_review"] = self._council_review_to_dict(council_review)
+                self._save_proposal(proposal)
+
+                if council_review.is_rejected():
+                    self._update_proposal_status(proposal_id, "rejected")
+                    await self._notify_council(proposal, council_review)
+                    return {"status": "rejected", "backup_id": None}
+
+                if council_review.needs_revision():
+                    self._update_proposal_status(proposal_id, "needs_revision")
+                    await self._notify_council(proposal, council_review)
+                    return {"status": "needs_revision", "backup_id": None}
+
+                # 通过：继续走正常流程（Level 3 仍需人工批准，Level 2 也需人工批准）
+                await self._notify_council(proposal, council_review)
 
         # Level 3: 需讨论，不自动执行
         if level == 3:
@@ -407,7 +428,7 @@ class ArchitectEngine:
         target_path = (self.workspace_path / target_rel).resolve()
         workspace_resolved = self.workspace_path.resolve()
         # 路径安全校验：禁止写 workspace 以外的文件
-        if not str(target_path).startswith(str(workspace_resolved)):
+        if not target_path.is_relative_to(workspace_resolved):
             raise ValueError(
                 f"Path traversal rejected: {target_rel!r} resolves outside workspace"
             )
@@ -443,6 +464,49 @@ class ArchitectEngine:
                 )
         except Exception as exc:
             logger.error("Telegram notification failed: %s", exc)
+
+    async def _run_council_if_needed(self, proposal: dict) -> CouncilReview | None:
+        """运行 Council 审议，失败时返回 None（不阻塞流程）。"""
+        try:
+            return await run_council_review(proposal, self.llm_client)
+        except Exception as exc:
+            logger.error("Council review failed for %s: %s", proposal.get("proposal_id"), exc)
+            return None
+
+    @staticmethod
+    def _council_review_to_dict(council_review: CouncilReview) -> dict:
+        """将 CouncilReview 转换为可序列化的 dict。"""
+        return {
+            "proposal_id": council_review.proposal_id,
+            "conclusion": council_review.conclusion,
+            "summary": council_review.summary,
+            "reviews": [
+                {
+                    "role": r.role,
+                    "name": r.name,
+                    "concern": r.concern,
+                    "recommendation": r.recommendation,
+                }
+                for r in council_review.reviews
+            ],
+        }
+
+    async def _notify_council(self, proposal: dict, council_review: CouncilReview) -> None:
+        """发送 Council 审议摘要通知。"""
+        if not self.telegram_channel:
+            return
+        try:
+            summary_text = (
+                f"Council 审议结果：{council_review.conclusion}\n"
+                f"提案 {proposal.get('proposal_id')}：{proposal.get('problem', '')}\n"
+                f"摘要：{council_review.summary}"
+            )
+            await self.telegram_channel.send_message(
+                text=summary_text,
+                message_type="council",
+            )
+        except Exception as exc:
+            logger.error("Council Telegram notification failed: %s", exc)
 
     @staticmethod
     def _try_parse_json(text: str) -> Any:
