@@ -26,6 +26,8 @@ workspace/memory/
 # Runtime artifacts
 nohup.out
 claude-progress.txt
+*.log
+*.jsonl
 
 # Cache
 .pytest_cache/
