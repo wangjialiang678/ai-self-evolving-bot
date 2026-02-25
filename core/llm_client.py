@@ -1,9 +1,13 @@
-"""统一 LLM 客户端接口 — 封装 Claude Opus (vtok.ai 代理) + Qwen 3.5 (NVIDIA)。"""
+"""统一 LLM 客户端接口 — 多 Provider 注册表架构。
+
+支持 anthropic 和 openai 兼容两种后端，通过配置动态路由。
+"""
 
 import json
 import logging
 import os
 from abc import ABC, abstractmethod
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +20,7 @@ class BaseLLMClient(ABC):
         self,
         system_prompt: str,
         user_message: str,
-        model: str = "qwen",
+        model: str = "opus",
         max_tokens: int = 2000,
     ) -> str:
         """
@@ -25,7 +29,7 @@ class BaseLLMClient(ABC):
         Args:
             system_prompt: 系统提示词
             user_message: 用户消息
-            model: 模型标识 ("opus" | "qwen")
+            model: Provider 名称（如 "opus", "qwen"）
             max_tokens: 最大输出 token 数
 
         Returns:
@@ -36,74 +40,101 @@ class BaseLLMClient(ABC):
         """
 
 
+# 默认 Provider 配置（无 YAML 时兜底）
+_DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
+    "opus": {
+        "type": "anthropic",
+        "model_id": "claude-opus-4-6",
+        "api_key_env": "PROXY_API_KEY",
+        "base_url": "https://vtok.ai",
+    },
+    "qwen": {
+        "type": "openai",
+        "model_id": "qwen/qwen3-235b-a22b",
+        "api_key_env": "NVIDIA_API_KEY",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "extra_body": {"chat_template_kwargs": {"thinking": False}},
+    },
+}
+
+_DEFAULT_ALIASES: dict[str, str] = {
+    "gemini-flash": "qwen",
+}
+
+
 class LLMClient(BaseLLMClient):
-    """真实 LLM 客户端。
+    """多 Provider LLM 客户端。
 
-    - Claude Opus/Sonnet: 通过 vtok.ai 中转站（Anthropic SDK + base_url）
-    - Qwen 3.5: 通过 NVIDIA 平台（OpenAI 兼容接口）
+    通过 providers 注册表动态路由到不同后端：
+    - type=anthropic: Anthropic SDK（Claude 系列）
+    - type=openai: OpenAI 兼容接口（Qwen、MiniMax、DeepSeek 等）
     """
-
-    # 模型 ID 映射
-    OPUS_MODEL = "claude-sonnet-4-20250514"
-    QWEN_MODEL = "qwen/qwen3-235b-a22b"  # NVIDIA 平台上的 Qwen 3.5
 
     def __init__(
         self,
-        proxy_api_key: str | None = None,
-        proxy_base_url: str | None = None,
-        nvidia_api_key: str | None = None,
+        providers: dict[str, dict[str, Any]] | None = None,
+        aliases: dict[str, str] | None = None,
     ):
-        self.proxy_api_key = proxy_api_key or os.getenv("PROXY_API_KEY")
-        self.proxy_base_url = proxy_base_url or os.getenv("PROXY_BASE_URL", "https://vtok.ai")
-        self.nvidia_api_key = nvidia_api_key or os.getenv("NVIDIA_API_KEY")
-        self._anthropic_client = None
-        self._nvidia_client = None
+        self._providers = providers or _DEFAULT_PROVIDERS
+        self._aliases = aliases or _DEFAULT_ALIASES
+        self._clients: dict[str, Any] = {}  # lazy-init cache
 
-    def _get_anthropic(self):
-        """获取 Anthropic 客户端（通过 vtok.ai 代理）。"""
-        if self._anthropic_client is None:
+    def _resolve(self, model: str) -> tuple[str, dict]:
+        """将 model 名解析为 (provider_name, config)，支持别名。"""
+        name = self._aliases.get(model, model)
+        if name not in self._providers:
+            raise ValueError(f"Unknown LLM provider: {model!r}")
+        return name, self._providers[name]
+
+    def _get_client(self, name: str, config: dict):
+        """获取或创建指定 provider 的客户端（懒初始化）。"""
+        if name in self._clients:
+            return self._clients[name]
+
+        ptype = config.get("type", "openai")
+        api_key = os.getenv(config.get("api_key_env", ""), "")
+        base_url = config.get("base_url", "")
+
+        if ptype == "anthropic":
             import anthropic
-            self._anthropic_client = anthropic.AsyncAnthropic(
-                api_key=self.proxy_api_key,
-                base_url=self.proxy_base_url,
-            )
-        return self._anthropic_client
-
-    def _get_nvidia(self):
-        """获取 NVIDIA OpenAI 兼容客户端（用于 Qwen 3.5）。"""
-        if self._nvidia_client is None:
+            client = anthropic.AsyncAnthropic(api_key=api_key, base_url=base_url)
+        else:
             from openai import AsyncOpenAI
-            self._nvidia_client = AsyncOpenAI(
-                api_key=self.nvidia_api_key,
-                base_url="https://integrate.api.nvidia.com/v1",
-            )
-        return self._nvidia_client
+            client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+
+        self._clients[name] = client
+        return client
 
     async def complete(
         self,
         system_prompt: str,
         user_message: str,
-        model: str = "qwen",
+        model: str = "opus",
         max_tokens: int = 2000,
     ) -> str:
         try:
-            if model == "opus":
-                return await self._call_opus(system_prompt, user_message, max_tokens)
-            elif model in ("qwen", "gemini-flash"):
-                # qwen 替代 gemini-flash 做辅助/低成本任务
-                return await self._call_qwen(system_prompt, user_message, max_tokens)
+            name, config = self._resolve(model)
+            client = self._get_client(name, config)
+            model_id = config.get("model_id", model)
+
+            if config.get("type") == "anthropic":
+                return await self._call_anthropic(
+                    client, model_id, system_prompt, user_message, max_tokens
+                )
             else:
-                logger.warning(f"Unknown model '{model}', falling back to qwen")
-                return await self._call_qwen(system_prompt, user_message, max_tokens)
+                extra_body = config.get("extra_body")
+                return await self._call_openai(
+                    client, model_id, system_prompt, user_message, max_tokens, extra_body
+                )
         except Exception as e:
             logger.error(f"LLM call failed (model={model}): {e}")
             return ""
 
-    async def _call_opus(self, system_prompt: str, user_message: str, max_tokens: int) -> str:
-        """通过 vtok.ai 代理调用 Claude。"""
-        client = self._get_anthropic()
+    @staticmethod
+    async def _call_anthropic(client, model_id, system_prompt, user_message, max_tokens) -> str:
+        """通过 Anthropic SDK 调用 Claude。"""
         response = await client.messages.create(
-            model=self.OPUS_MODEL,
+            model=model_id,
             max_tokens=max_tokens,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
@@ -112,20 +143,22 @@ class LLMClient(BaseLLMClient):
             raise ValueError("Anthropic API returned empty content")
         return response.content[0].text or ""
 
-    async def _call_qwen(self, system_prompt: str, user_message: str, max_tokens: int) -> str:
-        """通过 NVIDIA 平台调用 Qwen 3.5。"""
-        client = self._get_nvidia()
-        response = await client.chat.completions.create(
-            model=self.QWEN_MODEL,
-            max_tokens=max_tokens,
-            messages=[
+    @staticmethod
+    async def _call_openai(client, model_id, system_prompt, user_message, max_tokens, extra_body=None) -> str:
+        """通过 OpenAI 兼容接口调用。"""
+        kwargs: dict[str, Any] = {
+            "model": model_id,
+            "max_tokens": max_tokens,
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            extra_body={"chat_template_kwargs": {"thinking": False}},
-        )
+        }
+        if extra_body:
+            kwargs["extra_body"] = extra_body
+        response = await client.chat.completions.create(**kwargs)
         if not response.choices:
-            raise ValueError("NVIDIA API returned empty choices")
+            raise ValueError("OpenAI-compatible API returned empty choices")
         return response.choices[0].message.content or ""
 
 

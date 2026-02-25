@@ -209,10 +209,9 @@ async def test_complete_post_task_pipeline(workspace):
     reflection = ReflectionEngine(llm, str(workspace / "memory"))
     store = SignalStore(str(workspace / "signals"))
     detector = SignalDetector(store)
-    # Observer 使用同一个 mock llm（gemini-flash 和 opus 都支持）
+    # Observer 使用同一个 mock llm（qwen 和 opus 都支持）
     observer = ObserverEngine(
-        llm_client_gemini=llm,
-        llm_client_opus=llm,
+        llm_client=llm,
         workspace_path=str(workspace),
     )
     metrics = MetricsTracker(str(workspace / "metrics"))

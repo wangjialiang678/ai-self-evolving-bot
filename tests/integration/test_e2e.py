@@ -49,7 +49,6 @@ async def test_multi_turn_conversation(workspace):
     agent = AgentLoop(
         workspace_path=str(workspace),
         llm_client=llm,
-        llm_client_light=llm,
     )
 
     # 5 轮对话
@@ -94,7 +93,6 @@ async def test_error_task_generates_signals(workspace):
     agent = AgentLoop(
         workspace_path=str(workspace),
         llm_client=llm,
-        llm_client_light=llm,
     )
 
     trace = await agent.process_message("分析竞品", user_feedback="完全不对")

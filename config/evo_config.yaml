@@ -1,4 +1,25 @@
 # 进化系统配置
+llm:
+  providers:
+    opus:
+      type: anthropic
+      model_id: "claude-opus-4-6"
+      api_key_env: "PROXY_API_KEY"
+      base_url: "https://vtok.ai"
+    qwen:
+      type: openai
+      model_id: "qwen/qwen3-235b-a22b"
+      api_key_env: "NVIDIA_API_KEY"
+      base_url: "https://integrate.api.nvidia.com/v1"
+      extra_body:
+        chat_template_kwargs:
+          thinking: false
+  aliases:
+    gemini-flash: qwen
+
+agent_loop:
+  model: "opus"
+
 observer:
   light_mode:
     enabled: true

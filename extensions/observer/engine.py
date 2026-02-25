@@ -59,18 +59,22 @@ class ObserverEngine:
 
     def __init__(
         self,
-        llm_client_gemini: BaseLLMClient,
-        llm_client_opus: BaseLLMClient,
+        llm_client: BaseLLMClient,
         workspace_path: str,
+        *,
+        light_model: str = "qwen",
+        deep_model: str = "opus",
     ):
         """
         Args:
-            llm_client_gemini: lightweight mode model client.
-            llm_client_opus: deep analysis model client.
+            llm_client: 多 Provider LLM 客户端。
             workspace_path: path to ``workspace``.
+            light_model: 轻量观察使用的 provider 名。
+            deep_model: 深度分析使用的 provider 名。
         """
-        self.llm_client_gemini = llm_client_gemini
-        self.llm_client_opus = llm_client_opus
+        self.llm_client = llm_client
+        self.light_model = light_model
+        self.deep_model = deep_model
         self.workspace_path = Path(workspace_path)
 
         self.light_logs_dir = self.workspace_path / "observations" / "light_logs"
@@ -128,10 +132,10 @@ class ObserverEngine:
 
         note = "正常完成"
         try:
-            llm_note = await self.llm_client_gemini.complete(
+            llm_note = await self.llm_client.complete(
                 system_prompt=_LIGHT_SYSTEM_PROMPT,
                 user_message=user_prompt,
-                model="gemini-flash",
+                model=self.light_model,
                 max_tokens=120,
             )
             if llm_note and llm_note.strip():
@@ -202,10 +206,10 @@ class ObserverEngine:
 
         parsed = None
         try:
-            raw = await self.llm_client_opus.complete(
+            raw = await self.llm_client.complete(
                 system_prompt=_DEEP_SYSTEM_PROMPT,
                 user_message=user_message,
-                model="opus",
+                model=self.deep_model,
                 max_tokens=2000,
             )
             parsed = self._parse_json_object(raw)

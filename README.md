@@ -13,9 +13,9 @@ pip install -e .
 
 # 2. 配置环境变量
 cp config/evo_config.yaml workspace/evo_config.yaml
-export TELEGRAM_TOKEN=<your_bot_token>
+export TELEGRAM_BOT_TOKEN=<your_bot_token>
 export TELEGRAM_CHAT_ID=<your_chat_id>
-export ANTHROPIC_API_KEY=<your_key>        # Claude Opus
+export PROXY_API_KEY=<your_key>            # Claude Opus 4.6（通过 vtok.ai 代理）
 export NVIDIA_API_KEY=<your_key>           # Qwen（辅助/低成本任务）
 
 # 3. 运行
@@ -39,7 +39,7 @@ core/agent_loop.py    ← 核心对话引擎（规则 → 上下文 → LLM → 
     ├── core/architect.py     ← 进化引擎（提案 → 审批 → 执行 → 验证）
     ├── core/telegram.py      ← Telegram 消息发送（DND、队列、限流）
     ├── core/context.py       ← 上下文组装
-    ├── core/llm_client.py    ← LLM 调用（Claude Opus / Qwen）
+    ├── core/llm_client.py    ← 多 Provider LLM 注册表（Claude Opus 4.6 / Qwen）
     └── core/compaction.py    ← 对话历史压缩
 extensions/           ← A 类扩展模块（Observer / Signals / Reflection 等）
 workspace/            ← 运行时数据（规则、记忆、提案、报告）
@@ -71,7 +71,7 @@ python -m pytest tests/ -q
 python -m pytest tests/integration/test_e2e.py -v
 ```
 
-当前测试覆盖：**280 tests passing**
+当前测试覆盖：**499 tests passing**
 
 ---
 
@@ -82,16 +82,33 @@ python -m pytest tests/integration/test_e2e.py -v
 关键配置项：
 
 ```yaml
-workspace_path: ./workspace
-telegram:
-  dnd_start: "22:00"
-  dnd_end: "08:00"
-  max_proposals_per_day: 3
-architect:
-  auto_execute_level: 0   # 0=自动, 1=通知后执行, 2=人工审批
 llm:
-  model: "qwen"           # 主对话模型
-  observer_light_mode: true
+  providers:
+    opus:
+      type: anthropic
+      model_id: "claude-opus-4-6"
+      api_key_env: "PROXY_API_KEY"
+      base_url: "https://vtok.ai"
+    qwen:
+      type: openai
+      model_id: "qwen/qwen3-235b-a22b"
+      api_key_env: "NVIDIA_API_KEY"
+      base_url: "https://integrate.api.nvidia.com/v1"
+  aliases:
+    gemini-flash: qwen
+agent_loop:
+  model: "opus"
+observer:
+  light_mode:
+    enabled: true
+    model: "qwen"
+  deep_mode:
+    schedule: "02:00"
+    model: "opus"
+architect:
+  schedule: "03:00"
+  model: "opus"
+  max_daily_proposals: 3
 ```
 
 ---

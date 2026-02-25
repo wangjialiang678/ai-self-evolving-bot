@@ -10,8 +10,34 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+# 默认 Provider 配置
+_DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
+    "opus": {
+        "type": "anthropic",
+        "model_id": "claude-opus-4-6",
+        "api_key_env": "PROXY_API_KEY",
+        "base_url": "https://vtok.ai",
+    },
+    "qwen": {
+        "type": "openai",
+        "model_id": "qwen/qwen3-235b-a22b",
+        "api_key_env": "NVIDIA_API_KEY",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "extra_body": {"chat_template_kwargs": {"thinking": False}},
+    },
+}
+
+_DEFAULT_ALIASES: dict[str, str] = {
+    "gemini-flash": "qwen",
+}
+
 # 默认配置，当无 YAML 文件时使用
 _DEFAULTS: dict[str, Any] = {
+    "llm": {
+        "providers": _DEFAULT_PROVIDERS,
+        "aliases": _DEFAULT_ALIASES,
+    },
+    "agent_loop": {"model": "opus"},
     "observer": {
         "light_mode": {"enabled": True, "model": "qwen"},
         "deep_mode": {"schedule": "02:00", "model": "opus", "emergency_threshold": 3},
@@ -102,6 +128,42 @@ class EvoConfig:
                 return default
             current = current[part]
         return current
+
+    # ── LLM Provider 配置 ──
+
+    @property
+    def providers(self) -> dict[str, dict[str, Any]]:
+        """LLM Provider 注册表。"""
+        return dict(self.get("llm.providers", _DEFAULT_PROVIDERS))
+
+    @property
+    def aliases(self) -> dict[str, str]:
+        """模型名别名映射。"""
+        return dict(self.get("llm.aliases", _DEFAULT_ALIASES))
+
+    # ── 各组件模型选择 ──
+
+    @property
+    def agent_loop_model(self) -> str:
+        """Agent Loop（Telegram 对话）使用的模型。"""
+        return str(self.get("agent_loop.model", "opus"))
+
+    @property
+    def observer_light_model(self) -> str:
+        """Observer 轻量模式使用的模型。"""
+        return str(self.get("observer.light_mode.model", "qwen"))
+
+    @property
+    def observer_deep_model(self) -> str:
+        """Observer 深度模式使用的模型。"""
+        return str(self.get("observer.deep_mode.model", "opus"))
+
+    @property
+    def architect_model(self) -> str:
+        """Architect 使用的模型。"""
+        return str(self.get("architect.model", "opus"))
+
+    # ── 调度配置 ──
 
     @property
     def observer_schedule(self) -> str:

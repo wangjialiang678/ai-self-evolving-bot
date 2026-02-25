@@ -238,14 +238,13 @@ def _setup_workspace(tmp_path: Path) -> Path:
 
 
 def _make_engine(ws: Path, opus_response: str | None = None) -> ObserverEngine:
-    gemini = MockLLMClient(responses={"gemini-flash": "正常完成"})
-    opus = MockLLMClient(
-        responses={
-            "opus": opus_response
-            or json.dumps({"tasks_analyzed": 0, "key_findings": [], "overall_health": "good"})
-        }
-    )
-    return ObserverEngine(gemini, opus, str(ws))
+    llm = MockLLMClient(responses={
+        "qwen": "正常完成",
+        "gemini-flash": "正常完成",
+        "opus": opus_response
+            or json.dumps({"tasks_analyzed": 0, "key_findings": [], "overall_health": "good"}),
+    })
+    return ObserverEngine(llm_client=llm, workspace_path=str(ws))
 
 
 def _make_trace(task_id: str = "task_042") -> dict:

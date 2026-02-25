@@ -42,16 +42,14 @@ logger = logging.getLogger("evo-agent")
 
 def build_app(config: EvoConfig, workspace: Path, *, telegram_enabled: bool = True) -> dict:
     """初始化所有模块，返回模块字典。"""
-    # LLM 客户端
-    llm_opus = LLMClient()
-    llm_light = LLMClient()
+    # LLM 客户端（单实例，多 Provider）
+    llm = LLMClient(providers=config.providers, aliases=config.aliases)
 
     # Agent Loop（核心中枢）
     agent_loop = AgentLoop(
         workspace_path=str(workspace),
-        llm_client=llm_opus,
-        llm_client_light=llm_light,
-        model="opus",
+        llm_client=llm,
+        model=config.agent_loop_model,
     )
 
     # Bootstrap
@@ -96,9 +94,10 @@ def build_app(config: EvoConfig, workspace: Path, *, telegram_enabled: bool = Tr
     # Architect
     architect = ArchitectEngine(
         workspace_path=str(workspace),
-        llm_client=llm_opus,
+        llm_client=llm,
         rollback_manager=rollback_manager,
         telegram_channel=telegram,
+        model=config.architect_model,
     )
 
     # CronService 和 HeartbeatService（在 async_main 中配置后启动）
@@ -116,8 +115,7 @@ def build_app(config: EvoConfig, workspace: Path, *, telegram_enabled: bool = Tr
         "bootstrap": bootstrap,
         "architect": architect,
         "telegram": telegram,
-        "llm_opus": llm_opus,
-        "llm_light": llm_light,
+        "llm": llm,
         "bus": bus,
         "channel_manager": channel_manager,
         "cron_service": cron_service,
@@ -155,7 +153,7 @@ import json as _json
 async def _parse_bootstrap_input(app: dict, stage: str, user_text: str) -> dict:
     """用 LLM 将用户自然语言解析为 Bootstrap 所需的结构化字段。"""
     from core.llm_client import LLMClient
-    llm: LLMClient = app.get("llm_light") or app.get("llm_opus")
+    llm: LLMClient = app.get("llm")
     prompt = _PARSE_PROMPTS.get(stage, "")
     if not prompt or not llm:
         return {"raw_input": user_text}
@@ -260,6 +258,9 @@ async def run_bus_bridge(app: dict, stop_event: asyncio.Event):
         except Exception as e:
             logger.error("process_message failed: %s", e, exc_info=True)
             response = "处理消息时出错，请稍后重试。"
+
+        if not response or not response.strip():
+            response = "处理完成，但无回复内容。"
 
         if tg_channel:
             for chunk in _split_message(response, 4000):

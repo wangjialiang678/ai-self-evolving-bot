@@ -10,8 +10,8 @@
 
 你在参与一个「自进化 AI 智能体系统」的开发。Observer（观察者）是系统的「眼睛」——它观察但不修改。两种模式：
 
-1. **轻量模式**：每次任务后运行，用 Gemini Flash 记录一行观察日志
-2. **深度模式**：每日定时（或紧急触发），用 Opus 生成综合分析报告
+1. **轻量模式**：每次任务后运行，用 Qwen 记录一行观察日志
+2. **深度模式**：每日定时（或紧急触发），用 Claude Opus 4.6 生成综合分析报告
 
 Observer 的输出是 Architect（架构师）的输入。Observer 只负责观察和报告，不做任何修改决策。
 
@@ -35,14 +35,17 @@ Observer 的输出是 Architect（架构师）的输入。Observer 只负责观�
 class ObserverEngine:
     """Observer 引擎：观察系统运行状况，生成报告。"""
 
-    def __init__(self, llm_client_gemini: BaseLLMClient,
-                 llm_client_opus: BaseLLMClient,
-                 workspace_path: str):
+    def __init__(self, llm_client: BaseLLMClient,
+                 workspace_path: str,
+                 *,
+                 light_model: str = "qwen",
+                 deep_model: str = "opus"):
         """
         Args:
-            llm_client_gemini: Gemini Flash 客户端（轻量观察）
-            llm_client_opus: Opus 客户端（深度分析）
+            llm_client: 多 Provider LLM 客户端（统一注册表）
             workspace_path: workspace/ 目录路径
+            light_model: 轻量观察使用的 provider 名（默认 qwen）
+            deep_model: 深度分析使用的 provider 名（默认 opus）
         """
 
     async def lightweight_observe(self, task_trace: dict,
@@ -232,8 +235,9 @@ key_findings 按优先级排序（error_pattern 最高）。
 
 - Python 3.11+
 - 依赖：`core.llm_client.BaseLLMClient`
-- 轻量观察用 `model="gemini-flash"`
-- 深度分析用 `model="opus"`
+- 轻量观察用 `model="qwen"`（通过 `light_model` 参数配置）
+- 深度分析用 `model="opus"`（通过 `deep_model` 参数配置）
+- 使用单一 `LLMClient` 实例，通过 `model` 参数路由到不同 Provider
 - JSONL 追加写入
 - 深度报告同时写 Markdown 文件和返回 dict
 - ObserverScheduler 不管理实际定时器（调用方负责定时调用 check_and_run）
@@ -397,7 +401,7 @@ def _setup_workspace(tmp_path):
     return ws
 
 
-def _make_engine(ws, gemini_response="正常完成", opus_response=None):
+def _make_engine(ws, opus_response=None):
     from extensions.observer.engine import ObserverEngine
     from core.llm_client import MockLLMClient
 
@@ -407,9 +411,12 @@ def _make_engine(ws, gemini_response="正常完成", opus_response=None):
             "overall_health": "good",
         })
 
-    gemini_client = MockLLMClient(responses={"gemini-flash": gemini_response})
-    opus_client = MockLLMClient(responses={"opus": opus_response})
-    return ObserverEngine(gemini_client, opus_client, str(ws))
+    llm = MockLLMClient(responses={
+        "qwen": "正常完成",
+        "gemini-flash": "正常完成",
+        "opus": opus_response,
+    })
+    return ObserverEngine(llm_client=llm, workspace_path=str(ws))
 
 
 def _make_trace(task_id="task_042"):

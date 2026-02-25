@@ -49,7 +49,7 @@
 
 - **语言**：Python 3.11+
 - **基座**：NanoBot 框架（极简 Python AI Agent 框架）
-- **LLM**：Claude Opus（主力）+ Gemini Flash（辅助/低成本任务）
+- **LLM**：Claude Opus 4.6（主力）+ Qwen 3.5（辅助/低成本任务），多 Provider 注册表架构
 - **存储**：纯文件系统（Markdown/YAML/JSONL），不用数据库
 - **通信**：Telegram Bot API
 - **运行环境**：Mac 本地 24h
@@ -302,7 +302,7 @@ Architect ──读取──▶ workspace/observations/deep_reports/{date}.md
   ▼
 [7] === 任务后处理链（异步，用户不等待）===
   │
-  ├─▶ [7a] 反思引擎（Gemini Flash）
+  ├─▶ [7a] 反思引擎（Qwen）
   │         输入: task_trace
   │         输出: reflection_output
   │         写入: error_patterns.md 或 preferences.md
@@ -312,7 +312,7 @@ Architect ──读取──▶ workspace/observations/deep_reports/{date}.md
   │         输出: signal(s)
   │         写入: signals/active.jsonl
   │
-  ├─▶ [7c] Observer 轻量观察（Gemini Flash）
+  ├─▶ [7c] Observer 轻量观察（Qwen）
   │         输入: task_trace + reflection_output
   │         输出: light_log
   │         写入: observations/light_logs/{date}.jsonl
@@ -925,7 +925,7 @@ Phase 0: 基座搭建（Day 1-2）
     B1 — NanoBot 基座 + LLM 网关
       ├── 安装 NanoBot、配置 API Key
       ├── 创建 Telegram Bot 并连接
-      ├── 实现 LLMClient 统一接口（Opus + Gemini）
+      ├── 实现 LLMClient 多 Provider 注册表（Opus + Qwen）
       └── 交付：可运行的 NanoBot + 能收发 Telegram 消息
 
   Codex 同时:
@@ -1181,10 +1181,33 @@ Phase 1 开始前:
 
 ```yaml
 # 进化系统配置
+
+# 多 Provider LLM 注册表
+llm:
+  providers:
+    opus:
+      type: anthropic
+      model_id: "claude-opus-4-6"
+      api_key_env: "PROXY_API_KEY"
+      base_url: "https://vtok.ai"
+    qwen:
+      type: openai
+      model_id: "qwen/qwen3-235b-a22b"
+      api_key_env: "NVIDIA_API_KEY"
+      base_url: "https://integrate.api.nvidia.com/v1"
+      extra_body:
+        chat_template_kwargs:
+          thinking: false
+  aliases:
+    gemini-flash: qwen    # 向后兼容
+
+agent_loop:
+  model: "opus"
+
 observer:
   light_mode:
     enabled: true
-    model: "gemini-flash"
+    model: "qwen"
   deep_mode:
     schedule: "02:00"
     model: "opus"

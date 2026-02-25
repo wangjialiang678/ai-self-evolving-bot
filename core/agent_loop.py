@@ -35,21 +35,18 @@ class AgentLoop:
         workspace_path: str | Path,
         llm_client: BaseLLMClient,
         *,
-        llm_client_light: BaseLLMClient | None = None,
         model: str = "opus",
         max_history_rounds: int = 20,
     ):
         """
         Args:
             workspace_path: workspace 根目录
-            llm_client: 主力 LLM（Claude Opus）
-            llm_client_light: 轻量 LLM（Qwen / Gemini Flash）用于反思和 Observer
-            model: 默认推理模型
+            llm_client: 多 Provider LLM 客户端
+            model: 对话推理使用的 provider 名
             max_history_rounds: 最大保留对话轮数
         """
         self.workspace = Path(workspace_path)
         self.llm = llm_client
-        self.llm_light = llm_client_light or llm_client
         self.model = model
         self.max_history_rounds = max_history_rounds
 
@@ -82,7 +79,7 @@ class AgentLoop:
         try:
             from extensions.memory.reflection import ReflectionEngine
             memory_dir = str(self.workspace / "memory")
-            self._reflection_engine = ReflectionEngine(self.llm_light, memory_dir)
+            self._reflection_engine = ReflectionEngine(self.llm, memory_dir)
         except Exception as e:
             logger.warning("ReflectionEngine not available: %s", e)
 
@@ -100,8 +97,7 @@ class AgentLoop:
         try:
             from extensions.observer.engine import ObserverEngine
             self._observer_engine = ObserverEngine(
-                llm_client_gemini=self.llm_light,
-                llm_client_opus=self.llm,
+                llm_client=self.llm,
                 workspace_path=str(self.workspace),
             )
         except Exception as e:
@@ -119,7 +115,7 @@ class AgentLoop:
         try:
             from extensions.context.compaction import CompactionEngine
             memory_dir = str(self.workspace / "memory")
-            self._compaction_engine = CompactionEngine(self.llm_light, memory_dir)
+            self._compaction_engine = CompactionEngine(self.llm, memory_dir)
         except Exception as e:
             logger.warning("CompactionEngine not available: %s", e)
 
@@ -196,7 +192,7 @@ class AgentLoop:
             logger.error("LLM call failed: %s", e)
             response = f"抱歉，处理消息时出错：{e}"
 
-        if not response:
+        if not response or not response.strip():
             logger.warning("LLM returned empty response for message: %.80s", user_message)
             response = "抱歉，暂时无法生成回复，请稍后再试。"
 

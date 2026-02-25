@@ -17,7 +17,7 @@
               ▼            ▼            ▼
      ┌────────────┐ ┌───────────┐ ┌──────────────┐
      │ 规则解释器  │ │ Telegram  │ │ LLM 网关     │
-     │ (rules/)   │ │ 通道适配   │ │ (Opus+Gemini)│
+     │ (rules/)   │ │ 通道适配   │ │(多Provider) │
      └─────┬──────┘ └─────┬─────┘ └──────┬───────┘
            │              │              │
            ▼              │              │
@@ -80,7 +80,7 @@
 
 | # | 模块 | 为什么不能独立 | 预计工作量 |
 |---|------|--------------|:---------:|
-| B1 | **NanoBot 基座搭建 + LLM 网关** | 所有模块的基础，需要通读 NanoBot 源码 | 1-2 天 |
+| B1 | **基座搭建 + 多 Provider LLM 网关** | 所有模块的基础，多 Provider 注册表架构 | 1-2 天 |
 | B2 | **规则解释器 + 上下文引擎** | 系统核心中枢，决定每次 LLM 看到什么 | 3-4 天 |
 | B3 | **记忆系统（存储+检索+注入）** | 与上下文引擎深度耦合，写入/读取/注入一体 | 2-3 天 |
 | B4 | **Telegram 通道 + 审批流程** | 与 NanoBot 通道系统深度集成 | 2-3 天 |
@@ -518,29 +518,36 @@ tests/test_observer.py
 **接口定义**：
 ```python
 class ObserverEngine:
-    def __init__(self, llm_client_gemini, llm_client_opus,
-                 workspace_path: str):
-        pass
-
-    async def lightweight_observe(self, task_trace: dict) -> dict:
+    def __init__(self, llm_client: BaseLLMClient,
+                 workspace_path: str,
+                 *,
+                 light_model: str = "qwen",
+                 deep_model: str = "opus"):
         """
-        每次任务后的轻量观察（Gemini Flash）。
+        Args:
+            llm_client: 多 Provider LLM 客户端（统一注册表）
+            workspace_path: workspace/ 目录路径
+            light_model: 轻量观察使用的 provider 名
+            deep_model: 深度分析使用的 provider 名
+        """
+
+    async def lightweight_observe(self, task_trace: dict,
+                                   reflection_output: dict | None = None) -> dict:
+        """
+        每次任务后的轻量观察（默认使用 qwen）。
         写入 workspace/observations/light_logs/ 的 JSONL。
 
-        返回 JSONL 记录：
-          {"timestamp": "...", "task_id": "...", "outcome": "...",
-           "tokens": 2800, "model": "opus",
-           "signals": ["user_pattern"],
-           "error_type": "ERROR"|"PREFERENCE"|None,
-           "note": "..."}
+        返回：
+          {"patterns_noticed": [...], "suggestions": [...],
+           "urgency": "none"|"low"|"high"}
         """
 
     async def deep_analyze(self, trigger: str = "daily") -> dict:
         """
-        深度分析（Opus，数千 token）。
+        深度分析（默认使用 opus，数千 token）。
         trigger: "daily" | "emergency"
 
-        读取：当日所有轻量日志 + 规则文件 + Big Picture
+        读取：当日所有轻量日志 + 规则文件 + 活跃信号
         重点关注：真正错误（而非偏好偏差）
 
         输出深度报告写入 workspace/observations/deep_reports/{date}.md

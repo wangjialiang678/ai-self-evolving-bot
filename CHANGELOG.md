@@ -6,6 +6,20 @@
 
 ## [Unreleased]
 
+### Changed — 多 Provider LLM 架构重构
+
+- **`core/llm_client.py`**：重写为多 Provider 注册表架构
+  - `LLMClient(providers, aliases)` 接收 provider 配置字典和别名映射
+  - 支持 `anthropic` 类型（Anthropic SDK）和 `openai` 类型（OpenAI 兼容 REST API）
+  - 通过 `model` 参数路由到正确的后端，支持别名解析（如 `gemini-flash` → `qwen`）
+  - 客户端实例懒加载，按需创建
+- **`core/config.py`**：新增 `providers`、`aliases`、`agent_loop_model` 属性，移除硬编码的模型 ID
+- **`config/evo_config.yaml`**：新增 `llm.providers` 和 `llm.aliases` 配置段
+- **`core/agent_loop.py`**：移除 `llm_client_light` 参数，统一使用单一 `LLMClient` 实例
+- **`extensions/observer/engine.py`**：从双客户端 `(llm_client_gemini, llm_client_opus)` 改为单客户端 `(llm_client, *, light_model="qwen", deep_model="opus")`
+- **`main.py`**：从 `llm_opus` + `llm_light` 双实例简化为单一 `llm` 实例
+- **模型升级**：Opus 从 `claude-sonnet-4-20250514` 升级为 `claude-opus-4-6`
+
 ---
 
 ## [0.3.0] — 2026-02-23
