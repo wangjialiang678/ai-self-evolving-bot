@@ -79,11 +79,13 @@ class ArchitectEngine:
         llm_client: BaseLLMClient,
         rollback_manager=None,
         telegram_channel=None,
+        model: str = "opus",
     ):
         self.workspace_path = Path(workspace_path)
         self.llm_client = llm_client
         self.rollback_manager = rollback_manager
         self.telegram_channel = telegram_channel
+        self.model = model
 
         self.proposals_dir = self.workspace_path / "architect" / "proposals"
         self.deep_reports_dir = self.workspace_path / "observations" / "deep_reports"
@@ -115,7 +117,7 @@ class ArchitectEngine:
             raw = await self.llm_client.complete(
                 system_prompt=_DIAGNOSE_SYSTEM,
                 user_message=user_message,
-                model="opus",
+                model=self.model,
                 max_tokens=3000,
             )
         except Exception as exc:
@@ -358,7 +360,8 @@ class ArchitectEngine:
     def _save_proposal(self, proposal: dict) -> None:
         """保存提案到 JSON 文件。"""
         proposal_id = proposal.get("proposal_id", "unknown")
-        path = self.proposals_dir / f"{proposal_id}.json"
+        safe_id = self._sanitize_id(proposal_id)
+        path = self.proposals_dir / f"{safe_id}.json"
         try:
             path.write_text(
                 json.dumps(proposal, ensure_ascii=False, indent=2),
@@ -369,7 +372,8 @@ class ArchitectEngine:
 
     def _load_proposal(self, proposal_id: str) -> dict | None:
         """从文件加载提案。"""
-        path = self.proposals_dir / f"{proposal_id}.json"
+        safe_id = self._sanitize_id(proposal_id)
+        path = self.proposals_dir / f"{safe_id}.json"
         if not path.exists():
             return None
         try:
@@ -413,7 +417,7 @@ class ArchitectEngine:
                         f"方案：{proposal.get('solution', '')}\n"
                         f"目标文件：{files_affected[0]}"
                     ),
-                    model="opus",
+                    model=self.model,
                     max_tokens=1500,
                 )
             except Exception as exc:
@@ -515,3 +519,9 @@ class ArchitectEngine:
             return json.loads(text)
         except (json.JSONDecodeError, ValueError):
             return None
+
+    @staticmethod
+    def _sanitize_id(raw_id: str) -> str:
+        """Sanitize an identifier for safe use in file paths."""
+        import re as _re
+        return _re.sub(r'[^A-Za-z0-9_.-]', '_', raw_id)

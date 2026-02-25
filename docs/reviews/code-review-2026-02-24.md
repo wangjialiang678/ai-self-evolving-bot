@@ -25,6 +25,17 @@
 | P1-13 后台任务无跟踪 | agent_loop.py | `create_task` + `_background_tasks` set |
 | P1-16 信号原子性 | signals/store.py | 先写 archive 再原子 rename active |
 
+**第二轮修复 — 路径安全 + 依赖 + 文档（2 路并行代理，499 测试全部通过）:**
+
+| 问题 | 文件 | 修复内容 |
+|------|------|---------|
+| P0-2 RollbackManager 路径遍历 | rollback.py | `_normalize_to_workspace_relative` 对相对路径做 resolve+is_relative_to |
+| P1-1 proposal_id 未净化 | architect.py | 新增 `_sanitize_id`，`_save/_load_proposal` 均使用 |
+| P1-2 project_name 路径穿透 | bootstrap.py | slug 化 + is_relative_to 双重防护 |
+| P1-3 MemoryStore 路径穿透 | memory.py | 新增 `_safe_filename`，4 个写方法均使用 |
+| P2-1 依赖不一致 | pyproject.toml | 修复 build-backend，+openai +croniter，-google-genai |
+| P3-1 README 文档错误 | README.md | TELEGRAM_TOKEN→TELEGRAM_BOT_TOKEN，280→499 tests |
+
 ---
 
 ## 目录

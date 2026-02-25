@@ -218,7 +218,12 @@ class BootstrapFlow:
 
     def save_project_config(self, project_name: str, config: dict) -> Path:
         """保存项目配置到 workspace/memory/projects/{name}/context.md。"""
-        project_dir = self._root / "memory" / "projects" / project_name
+        import re as _re
+        safe_name = _re.sub(r'[^A-Za-z0-9_.\u4e00-\u9fff-]', '_', project_name) or "unnamed"
+        project_dir = self._root / "memory" / "projects" / safe_name
+        projects_root = (self._root / "memory" / "projects").resolve()
+        if not project_dir.resolve().is_relative_to(projects_root):
+            raise ValueError(f"Invalid project name: {project_name!r}")
         project_dir.mkdir(parents=True, exist_ok=True)
 
         description = config.get("description", "")

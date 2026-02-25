@@ -228,16 +228,23 @@ class RollbackManager:
 
     @staticmethod
     def _make_backup_id(now: datetime, proposal_id: str) -> str:
-        return f"backup_{now.strftime('%Y%m%d_%H%M%S')}_{proposal_id}"
+        import re as _re
+        safe_id = _re.sub(r'[^A-Za-z0-9_.-]', '_', proposal_id)
+        return f"backup_{now.strftime('%Y%m%d_%H%M%S')}_{safe_id}"
 
     def _normalize_to_workspace_relative(self, file_path: str) -> Path | None:
         raw = Path(file_path)
         if raw.is_absolute():
-            try:
-                return raw.resolve().relative_to(self.workspace_path.resolve())
-            except ValueError:
-                return None
-        return raw
+            resolved = raw.resolve()
+        else:
+            resolved = (self.workspace_path / raw).resolve()
+        workspace_resolved = self.workspace_path.resolve()
+        if not resolved.is_relative_to(workspace_resolved):
+            return None
+        try:
+            return resolved.relative_to(workspace_resolved)
+        except ValueError:
+            return None
 
     def _read_metadata(self, backup_dir: Path) -> dict[str, Any] | None:
         metadata_file = backup_dir / "metadata.json"

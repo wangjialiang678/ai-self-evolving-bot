@@ -44,6 +44,14 @@ class MemoryStore:
                   self.conversations_dir, self.summaries_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
+    def _safe_filename(name: str) -> str:
+        """Sanitize a name for safe use as a filename component."""
+        sanitized = re.sub(r'[^A-Za-z0-9_.\u4e00-\u9fff-]', '_', name)
+        if not sanitized or sanitized.startswith('.'):
+            sanitized = '_' + sanitized
+        return sanitized
+
     # ──────────────────────────────────────
     #  写入
     # ──────────────────────────────────────
@@ -58,7 +66,7 @@ class MemoryStore:
         Returns:
             写入的文件路径
         """
-        path = self.user_dir / f"{key}.md"
+        path = self.user_dir / f"{self._safe_filename(key)}.md"
         path.write_text(content, encoding="utf-8")
         logger.info(f"User memory saved: {key} ({len(content)} chars)")
         return path
@@ -74,9 +82,11 @@ class MemoryStore:
         Returns:
             写入的文件路径
         """
-        proj_dir = self.projects_dir / project
+        safe_project = self._safe_filename(project)
+        safe_key = self._safe_filename(key)
+        proj_dir = self.projects_dir / safe_project
         proj_dir.mkdir(parents=True, exist_ok=True)
-        path = proj_dir / f"{key}.md"
+        path = proj_dir / f"{safe_key}.md"
         path.write_text(content, encoding="utf-8")
         logger.info(f"Project memory saved: {project}/{key} ({len(content)} chars)")
         return path
@@ -143,7 +153,7 @@ class MemoryStore:
             "messages": messages,
             "metadata": metadata or {},
         }
-        path = self.conversations_dir / f"{conversation_id}.json"
+        path = self.conversations_dir / f"{self._safe_filename(conversation_id)}.json"
         path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
         logger.info(f"Conversation saved: {conversation_id} ({len(messages)} messages)")
         return path
@@ -158,7 +168,7 @@ class MemoryStore:
         Returns:
             保存的文件路径
         """
-        path = self.summaries_dir / f"{date}.md"
+        path = self.summaries_dir / f"{self._safe_filename(date)}.md"
         path.write_text(summary, encoding="utf-8")
         logger.info(f"Daily summary saved: {date}")
         return path
