@@ -1,6 +1,6 @@
 # 自进化智能体系统 - 文档索引
 
-> **最后更新**: 2026-02-23
+> **最后更新**: 2026-02-25
 
 ---
 
@@ -31,6 +31,35 @@
 | **调研** | research-evomaster-inspirations.md, research-evomaster-vs-self-evolving.md, research-evolver-pcec.md, research-nanobot.md |
 | **洞察** | insight-agent-evolution-without-humans.md, insight-ai-collaboration-org-efficiency.md |
 | **其他** | tech-claude-code-bridge-v2.md, ref-huyuanming-claude-code.pdf |
+
+---
+
+## 调研报告（2026-02）
+
+| 文件 | 内容 |
+|------|------|
+| [research/pi-technical-report.md](research/pi-technical-report.md) | Pi 项目技术调研 — 最小化工具集 Agent 框架 |
+| [research/bub-technical-report.md](research/bub-technical-report.md) | Bub 项目技术调研 — AI Native 自驱动 Agent |
+| [research/letta-memgpt-technical-report.md](research/letta-memgpt-technical-report.md) | Letta/MemGPT 技术调研 — 分层记忆 Agent 框架 |
+| [research/mem0-technical-report.md](research/mem0-technical-report.md) | Mem0 技术调研 — 外挂式 AI 记忆层 |
+| [research/openclaw-article-analysis.md](research/openclaw-article-analysis.md) | 《复刻一只 OpenClaw》文章系统分析 |
+| [research/openclaw-technical-report.md](research/openclaw-technical-report.md) | OpenClaw 项目技术调研 — 架构、工具、技能、安全 |
+| [research/openclaw-source-deep-dive.md](research/openclaw-source-deep-dive.md) | OpenClaw 源码深度分析 — Agent Loop + 工具系统 + Telegram |
+| [research/nanobot-technical-report.md](research/nanobot-technical-report.md) | Nanobot 项目技术调研 — 超轻量多平台 AI 助手 |
+| [research/nanobot-source-deep-dive.md](research/nanobot-source-deep-dive.md) | Nanobot 源码深度分析 — Agent Loop + 工具系统 + Telegram |
+
+---
+
+## 外部项目源码（已克隆到本地）
+
+| 项目 | 本地路径 | 说明 |
+|------|----------|------|
+| OpenClaw | `/Users/michael/projects/repos/openclaw/` | 通用型 AI 智能体 |
+| Nanobot | `/Users/michael/projects/repos/nanobot/` | OpenClaw 最小化复现 |
+| Pi | `/Users/michael/projects/repos/pi/` | 最小化工具集 Agent 框架 |
+| Bub | `/Users/michael/projects/repos/bub/` | AI Native 自驱动 Agent |
+| Letta | `/Users/michael/projects/repos/letta/` | MemGPT 论文产品化 |
+| Mem0 | `/Users/michael/projects/repos/mem0/` | 外挂式 AI 记忆层 |
 
 ---
 

@@ -551,3 +551,132 @@
   confidence: 1.0
   learned_at: 2026-02-25
   based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225091018
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225091523
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225091523
+- tool: Bash
+  action: allow
+  pattern: ^cp
+  reason: 用户总是批准 cp 命令
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 4 次，拒绝 0 次
+
+### learned-20260225091711
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225091725
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225100007
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225100105
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225100122
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225101712
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225104045
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225104240
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225192042
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260225192922
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-25
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260228105003
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-28
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260228105014
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-28
+  based_on: 批准 3 次，拒绝 0 次
+
+### learned-20260228105018
+- tool: ToolSearch
+  action: allow
+  reason: 从用户行为学习
+  confidence: 1.0
+  learned_at: 2026-02-28
+  based_on: 批准 3 次，拒绝 0 次
