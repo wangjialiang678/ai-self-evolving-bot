@@ -45,8 +45,7 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
     "opus": {
         "type": "anthropic",
         "model_id": "claude-opus-4-6",
-        "api_key_env": "PROXY_API_KEY",
-        "base_url": "https://vtok.ai",
+        "api_key_env": "ANTHROPIC_API_KEY",
     },
     "qwen": {
         "type": "openai",
@@ -97,10 +96,16 @@ class LLMClient(BaseLLMClient):
 
         if ptype == "anthropic":
             import anthropic
-            client = anthropic.AsyncAnthropic(api_key=api_key, base_url=base_url)
+            kwargs = {"api_key": api_key}
+            if base_url:
+                kwargs["base_url"] = base_url
+            client = anthropic.AsyncAnthropic(**kwargs)
         else:
             from openai import AsyncOpenAI
-            client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+            kwargs = {"api_key": api_key}
+            if base_url:
+                kwargs["base_url"] = base_url
+            client = AsyncOpenAI(**kwargs)
 
         self._clients[name] = client
         return client
