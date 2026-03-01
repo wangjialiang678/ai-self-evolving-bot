@@ -15,8 +15,7 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
     "opus": {
         "type": "anthropic",
         "model_id": "claude-opus-4-6",
-        "api_key_env": "PROXY_API_KEY",
-        "base_url": "https://vtok.ai",
+        "api_key_env": "ANTHROPIC_API_KEY",
     },
     "qwen": {
         "type": "openai",

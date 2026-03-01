@@ -1,11 +1,26 @@
 # 进化系统配置
+#
+# LLM Provider 配置说明:
+#   type: "anthropic" | "openai" (OpenAI 兼容接口)
+#   model_id: 模型 ID
+#   api_key_env: 环境变量名（从中读取 API key）
+#   base_url: (可选) API 代理地址，不填则使用官方端点
+#   extra_body: (可选) 额外请求参数
+#
+# 示例 — 通过代理访问 Claude:
+#   opus:
+#     type: anthropic
+#     model_id: "claude-opus-4-6"
+#     api_key_env: "PROXY_API_KEY"
+#     base_url: "https://your-proxy.example.com"
+#
 llm:
   providers:
     opus:
       type: anthropic
       model_id: "claude-opus-4-6"
-      api_key_env: "PROXY_API_KEY"
-      base_url: "https://vtok.ai"
+      api_key_env: "ANTHROPIC_API_KEY"
+      # base_url: "https://your-proxy.example.com"  # 取消注释以使用代理
     qwen:
       type: openai
       model_id: "qwen/qwen3-235b-a22b"
